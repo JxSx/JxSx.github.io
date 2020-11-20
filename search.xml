@@ -1,0 +1,890 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>Android-Architecture之todo-mvp-clean</title>
+    <url>/posts/e367b974.html</url>
+    <content><![CDATA[<blockquote>
+<p>Domain Layer拥有所有的业务逻辑。Domain层从命名为User Case或者interactor的类开始，这些类由展示层（Presenter）来使用。这些User Case代表开发人员可以从展示层（Presenter）执行的所有可能的操作。</p>
+</blockquote>
+<p><a href="http://www.jianshu.com/p/0368481cc419" target="_blank" rel="noopener">上一篇文章</a>描述了todo-mvp，并着重描述了一下Data层。这次在此基础上又增加了domain 层。</p>
+<p><img src="/posts/e367b974/93730-77aefec441b06e69.webp" alt="Paste_Image.png"><br><a id="more"></a></p>
+<h1 id="主要概念"><a href="#主要概念" class="headerlink" title="主要概念"></a>主要概念</h1><p>与之前项目最大的区别是扩展出了Domain层和许多use case。这将有助于避免Presenter上的代码重复。</p>
+<p>User Case定义应用程序需要的操作（封装了请求参数和回调结果基类）。将Data层的方法抽象到了Domain层的类，这增加了可读性，因为类的名称可以使目的更明显，见名知义。</p>
+<p>User Case更方便我们对Domain层的代码进行重用操作。CompleteTask集成了User Case,TaskDetailPresenter和TasksPresenter都在使用它，得到了重用。</p>
+<p>这些User Case的执行在后台线程中使用<a href="http://www.oodesign.com/command-pattern.html" target="_blank" rel="noopener">命令模式</a>来完成。Domain层与Android SDK或其他第三方库完全解耦。</p>
+<p><strong>命令模式优点</strong>：</p>
+<ol>
+<li>命令模式是通过命令发送者和命令执行者的解耦来完成对命令的具体控制的。</li>
+<li>命令模式是对功能方法的抽象，并不是对对象的抽象。</li>
+<li>命令模式是将功能提升到对象来操作，以便对多个功能进行一系列的处理以及封装。</li>
+</ol>
+<p>这里的命令发送者是Presenter，命令执行者是repository。中间通过usercase和其实现类完成两者解耦。</p>
+<p>直观的看出，将getTask方法抽象成GetTask类。</p>
+<h1 id="杂谈"><a href="#杂谈" class="headerlink" title="杂谈"></a>杂谈</h1><p>Domain层是对Data层和Presenter层之间的数据处理和操作加工。对于复杂的项目而言，上层UI和底层数据的变动频繁，导致UI和数据经常对不上号。因而中间层可以对数据进行一层过滤操作。拿到网络数据，加工成Presenter层需要的数据即可。</p>
+<p>同时，将Presenter的方法含义抽象到类中，直观的显示功能操作，并封装了RequestValues和ResponseValue。</p>
+<p>这一层，既不依赖与Android SDK，也不依赖于第三方库（网络库，数据库）。</p>
+]]></content>
+      <categories>
+        <category>Android</category>
+      </categories>
+      <tags>
+        <tag>Architecture</tag>
+        <tag>MVP</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Android-Architecture之todo-mvp</title>
+    <url>/posts/29f4a5f2.html</url>
+    <content><![CDATA[<blockquote>
+<p><a href="https://github.com/googlesamples/android-architecture/tree/todo-mvp" target="_blank" rel="noopener">todo-mvp官方地址</a></p>
+</blockquote>
+<p>#UI层<br>项目主要实现了4部分功能：</p>
+<ul>
+<li>Tasks 用于管理任务列表</li>
+<li>TaskDetails 用于显示和删除任务</li>
+<li>AddEditTask 用于创建和编辑任务</li>
+<li>Statistics 显示与任务相关的统计信息</li>
+</ul>
+<h1 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h1><p>每个功能都是依照如下方式实现：</p>
+<ul>
+<li>定义一个连接View和Presenter的契约类Contract</li>
+<li>创建一个Presenter，并实现契约类中的Presenter接口</li>
+<li>Activity中实例化Fragment和Presenter。</li>
+<li>Fragment中实现BaseView接口<a id="more"></a>
+<blockquote>
+<p>A presenter typically hosts business logic associated with a particular feature, and the corresponding view handles the Android UI work. The view contains almost no logic; it converts the presenter’s commands to UI actions, and listens for user actions, which are then passed to the presenter.</p>
+</blockquote>
+</li>
+</ul>
+<p>Presenter通常托管这与特定功能相关的业务逻辑，响应的View层处理Android UI工作。视图层几乎不包含逻辑；视图层把Presenter层中的命令转化为UI操作，而且视图层去监听用户的操作，传递给Presenter层。</p>
+<p>#架构图<br><img src="/posts/29f4a5f2/93730-8e8540065d3aafd6.webp" alt="mvp.png"></p>
+<p>项目中包含了Presenter，Repository和DataSource，实现层与层之间的解耦，同时方便单元测试。</p>
+<p>按照<a href="https://github.com/android10/Android-CleanArchitecture" target="_blank" rel="noopener">Android-CleanArchitecture</a>架构图来说，这里只包含了Presentation Layer和Data Layer两层，并未包含Domain Layer。其依赖规则是只能上层依赖下层。</p>
+<p>#Data层<br>App需要的数据都是通过Data层中的Repository模块提供，由它去完成访问网络和数据库等。</p>
+<blockquote>
+<p>使用Repository将业务层与具体的查询逻辑分离，Repository的实现类主要职责就是存储查询数据，一个更简单的解释就是你可以把Repository的实现类当成是一个Java容器(Collections)，可以从中获取或存储数据(add/remove/etc),他对数据源进行了抽象。Data层的Repository只需要实现相关接口，并提供相关服务即可。</p>
+</blockquote>
+<p><img src="/posts/29f4a5f2/93730-8ec0e1015a3667b5.webp" alt="Respository.png"></p>
+<p>如上图，Repository接口定义了getUserById、getAllUsers等方法，其实现类对接口做具体实现，而真正的操作可能是通过Dao才能访问数据库，或者通过Okhttp访问网络url获取数据。</p>
+<p>回到todo项目中：</p>
+<ul>
+<li>接口TasksDataSource  规范操作数据的方法</li>
+<li>类TasksRemoteDataSource 实现TasksDataSource 接口，实现真正操作数据的逻辑。</li>
+<li>类TasksRepository 实现TasksDataSource接口，持有TasksRemoteDataSource对象调用各个方法。<br><img src="/posts/29f4a5f2/93730-a73c8794fb7722ac.webp" alt="Class Diagram.png"></li>
+</ul>
+<p>欢迎交流！<br><a href="http://www.jianshu.com/p/66e749e19f0d" target="_blank" rel="noopener">Clean架构探讨</a></p>
+]]></content>
+      <categories>
+        <category>Android</category>
+      </categories>
+      <tags>
+        <tag>Architecture</tag>
+        <tag>MVP</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>《Android开发艺术探索》——View的事件体系</title>
+    <url>/posts/236631f.html</url>
+    <content><![CDATA[<h1 id="View的事件体系"><a href="#View的事件体系" class="headerlink" title="View的事件体系"></a>View的事件体系</h1><ul>
+<li>自定义控件</li>
+<li>滑动冲突解决<h2 id="3-1View基础知识"><a href="#3-1View基础知识" class="headerlink" title="3.1View基础知识"></a>3.1View基础知识</h2></li>
+</ul>
+<ol>
+<li>View的位置参数</li>
+<li>MotionEvent和TouchSlop对象</li>
+<li>VelocityTracker</li>
+<li>GestureDetector和Scroller对象<h3 id="3-1-1-什么是View"><a href="#3-1-1-什么是View" class="headerlink" title="3.1.1 什么是View"></a>3.1.1 什么是View</h3>View是Android中所有控件的基类<a id="more"></a>
+<h3 id="3-1-2-View的位置参数"><a href="#3-1-2-View的位置参数" class="headerlink" title="3.1.2 View的位置参数"></a>3.1.2 View的位置参数</h3><img src="http://www.wfuyu.com/uploadfile/cj/20150117/20150115155321445.png" alt="图片"><h3 id="3-1-3-MotionEvent和TouchSlop"><a href="#3-1-3-MotionEvent和TouchSlop" class="headerlink" title="3.1.3 MotionEvent和TouchSlop"></a>3.1.3 MotionEvent和TouchSlop</h3><h4 id="1-MotionEvent"><a href="#1-MotionEvent" class="headerlink" title="1.MotionEvent"></a>1.MotionEvent</h4>Touch事件中，典型的事件有如下几种：</li>
+</ol>
+<ul>
+<li>ACTION_DOWN —— 手指接触屏幕</li>
+<li>ACTION_MOVE —— 手指在屏幕上移动</li>
+<li>ACTION_UP   —— 手指从屏幕离开<h4 id="2-TouchSlop"><a href="#2-TouchSlop" class="headerlink" title="2.TouchSlop"></a>2.TouchSlop</h4>TouchSlop是系统所能识别出的被认为是滑动的最小距离，换句话说，当手指在屏幕上滑动时，当两次滑动之间的距离小于这个常量，那么系统不认为是在进行滑动操作。通过以下方式获取这个常量值：<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">ViewConfiguration.get(getContext()).getScaledTouchSlop();</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>这个常量有神马意义呢？<br>可以使用这个常量判断是否达到滑动条件，处理滑动时，做一些过滤。</p>
+<h3 id="3-1-4-VelocityTracker、GestureDetector和Scroller对象"><a href="#3-1-4-VelocityTracker、GestureDetector和Scroller对象" class="headerlink" title="3.1.4 VelocityTracker、GestureDetector和Scroller对象"></a>3.1.4 VelocityTracker、GestureDetector和Scroller对象</h3><h4 id="1-VelocityTracker"><a href="#1-VelocityTracker" class="headerlink" title="1. VelocityTracker"></a>1. VelocityTracker</h4><p>速度追踪，用于追踪手指在滑动过程中的速度，包括水平和竖直方向的速度。</p>
+<ol>
+<li><p>构造方法中初始化获取VelocityTracker对象</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">VelocityTracker mVelocityTracker = VelocityTracker.obtain();</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在<strong>onTouchEvent</strong>方法中添加追踪事件</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">mVelocityTracker.addMovement(event);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在<strong>ACTION_UP</strong>事件中获取当前的速度。注意这里计算的是1000ms时间间隔移动的像素值，假设像素是100，即速度是每秒100像素。手指从右向左滑动，速度为负值。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">mVelocityTracker.computeCurrentVelocity(1000);</span><br><span class="line">float xVelocity = mVelocityTracker.getXVelocity();</span><br><span class="line">float yVelocity = mVelocityTracker.getYVelocity();</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>最后，当不需要它的时候需要调用<strong>clear</strong>方法来重置并回收内存。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">mVelocityTracker.clear();</span><br><span class="line">mVelocityTracker.recycle();</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h4 id="2-GestureDetecor"><a href="#2-GestureDetecor" class="headerlink" title="2.GestureDetecor"></a>2.GestureDetecor</h4><p>手势检测，用于辅助检测用户的单击、滑动、长按、双击等行为。</p>
+<ol>
+<li><p>创建一个<strong>GestureDetecor</strong>对象并实现<strong>OnGestureListener</strong>接口，根据需要实现单击等方法：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">GestureDetector mGestureDetector = new GestureDetector(this);</span><br><span class="line">// 解决长按屏幕后无法拖动的现象</span><br><span class="line">mGestureDetector.setIsLongpressEnabled(false);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>接管目标<strong>View</strong>的<strong>onTouchEvent</strong>方法，在待监听<strong>View</strong>的<strong>onTouchEvent</strong>方法中添加如下实现：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">boolean consume = mGestureDetector.onTouchEvent(event);</span><br><span class="line">return consume;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><strong>建议</strong>：<br>    如果只是监听滑动操作，建议在onTouchEvent中实现；如果要监听双击这种行为，则使用GestureDetector 。</p>
+<h4 id="3-Scroller"><a href="#3-Scroller" class="headerlink" title="3.Scroller"></a>3.Scroller</h4><p>弹性滑动对象，用于实现View的弹性滑动。<br>View的scrollTo/scrollBy方法来滑动时，过程是瞬间完成的。使用Scroller则有过渡滑动的效果。注意，Scoller本身无法让View弹性滑动，它需要和View的computerScroller方法配合使用。</p>
+<ol>
+<li><p>构造方法初始化</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Scroller mScroller = new Scroller(getContext());</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>缓慢滑动到指定位置，一般在ACTION_UP 方法中执行，松手回弹效果。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">private void smoothScrollBy(int dx, int dy) &#123;</span><br><span class="line">    mScroller.startScroll(getScrollX(), 0, dx, 0, 500);</span><br><span class="line">    invalidate();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Override</span><br><span class="line">public void computeScroll() &#123;</span><br><span class="line">    if (mScroller.computeScrollOffset()) &#123;</span><br><span class="line">        scrollTo(mScroller.getCurrX(), mScroller.getCurrY());</span><br><span class="line">        postInvalidate();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><strong>Scroller原理</strong><br><img src="http://www.2cto.com/uploadfile/Collfiles/20140810/2014081009245012.jpg" alt="原理图"><br>参考链接：</p>
+<ul>
+<li><a href="http://www.2cto.com/kf/201408/324683.html" target="_blank" rel="noopener">http://www.2cto.com/kf/201408/324683.html</a></li>
+<li><a href="http://androidxref.com/2.3.6/xref" target="_blank" rel="noopener">http://androidxref.com/2.3.6/xref</a></li>
+<li><a href="http://blog.csdn.net/wangjinyu501/article/details/32339379" target="_blank" rel="noopener">http://blog.csdn.net/wangjinyu501/article/details/32339379</a></li>
+<li><a href="http://blog.csdn.net/zjmdp/article/details/7713209" target="_blank" rel="noopener">http://blog.csdn.net/zjmdp/article/details/7713209</a></li>
+<li><a href="http://blog.csdn.net/xiaanming/article/details/17483273" target="_blank" rel="noopener">http://blog.csdn.net/xiaanming/article/details/17483273</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>Android</category>
+      </categories>
+      <tags>
+        <tag>View</tag>
+        <tag>Scroller</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Android进程启动流程</title>
+    <url>/posts/c9c5165b.html</url>
+    <content><![CDATA[<blockquote>
+<p><a href="http://gityuan.com/2016/03/26/app-process-create/" target="_blank" rel="noopener">理解Android进程创建流程</a><br><a href="http://gityuan.com/2016/10/09/app-process-create-2/" target="_blank" rel="noopener">理解Android进程启动之全过程</a></p>
+</blockquote>
+<p>站在<a href="http://gityuan.com/" target="_blank" rel="noopener">GITYUAN</a>大神的肩膀上学习，用一张神图表示进程基本的启动流程.</p>
+<p><img src="/posts/c9c5165b/93730-b39799182d787287.webp" alt="进程启动流程"></p>
+<a id="more"></a>
+<p>上图还需对照源码进行查看，简述一下启动流程</p>
+<p></p><p><br>在<a href="http://www.jianshu.com/p/b85b929a12b7" target="_blank" rel="noopener">Android系统全貌</a>描述到了Zygote孵化了第一个进程是system_server进程，而且孵化第一个App进程是Launcher，也就是桌面App。</p>
+<p></p><p><br>当点击<code>桌面App</code>的时候，发起进程就是<code>Launcher</code>所在的进程，启动远程进程，利用<code>Binder</code>发送消息给<code>system_server进程</code>；</p>
+<p></p><p><br>在<code>system_server进程</code>中启动了N多服务，例如<code>ActiivityManagerService，WindowManagerService</code>等。启动进程的操作会先调用<code>AMS.startProcessLocked</code>方法，内部调用 <code>Process.start(android.app.ActivityThread);</code>而后通过<code>socket</code>通信告知<code>Zygote进程fork子进程</code>，即app进程。进程创建后将<code>ActivityThread</code>加载进去，执行<code>ActivityThread.main()</code>方法。</p>
+<p></p><p><br>在<code>app进程</code>中，<code>main方法</code>会实例化<code>ActivityThread</code>，同时创建<code>ApplicationThread，Looper，Hander对象</code>，调用<code>attach方法</code>进行<code>Binder</code>通信，<code>looper</code>启动循环。<code>attach</code>方法内部获取<code>ActivityManagerProxy</code>对象，其实现了<code>IActivityManager</code>接口，作为客户端调用<code>attachApplication(mAppThread)</code>方法，将<code>thread</code>信息告知<code>AMS</code>。</p>
+<p></p><p><br>在<code>system_server进程</code>中，<code>AMS</code>中会调用<code>ActivityManagerNative.onTransact</code>方法，真正的逻辑在服务端<code>AMS.attachApplication</code>方法中，内部调用<code>AMS.attachApplicationLocked</code>方法，方法的参数是<code>IApplicationThread</code>，在此处是<code>ApplicationThreadProxy</code>对象,用于跟前面通过<code>Process.start()</code>所创建的进程中<code>ApplicationThread</code>对象进行通信。<br><code>attachApplicationLocked</code>方法会处理<code>Provider, Activity, Service, Broadcast</code>相应流程，调用<code>ApplicationThreadProxy.bindApplication</code>方法，通过<code>Binder</code>通信，传递给<code>ApplicationThreadNative.onTransact</code>方法。</p>
+<p>在<code>app进程</code>中，真正的逻辑在<code>ActivityThread.bindApplication</code>方法中。<code>bindApplication</code>方法的主要功能是依次向主线程发送消息<code>H.SET_CORE_SETTINGS
+和H.BIND_APPLICATION</code>。后续创建<code>Application,Context</code>等。<code>Activity</code>的回调也会是通过Binder通信，然后发送不同消息处理。<br>. </p>
+]]></content>
+      <categories>
+        <category>Android</category>
+      </categories>
+      <tags>
+        <tag>进程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>App集成ReactNative</title>
+    <url>/posts/c7347a69.html</url>
+    <content><![CDATA[<ol>
+<li><p>打开<code>cmd</code>，进入工程目录</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">npm init   //提醒生成package.json文件</span><br></pre></td></tr></table></figure>
+<p>这个命令提示需要输入部分信息，如图</p>
+<p><img src="/posts/c7347a69/93730-d52e7236ee1fef23.webp" alt="命令行"></p>
+</li>
+</ol>
+<a id="more"></a>
+<p> 生成文件如下：<br>  <img src="/posts/c7347a69/93730-a015cb13a8bd359f.webp" alt="package.json"><br>   当然，文件内容我们后续还可以使用编辑器修改。</p>
+<ul>
+<li><p>安装<code>React</code>和<code>React Native</code></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">npm install --save react react-native  //安装React 和React Native</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>下载<code>.flowconfig</code>文件</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">curl -o .flowconfig https://raw.githubusercontent.com/facebook/react-native/master/.flowconfig //下载.flowconfig文件</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<blockquote>
+<p>也可以手动创建.flowconfig文件，<a href="/posts/c7347a69//raw.githubusercontent.com/facebook/react-native/master/.flowconfig](https://raw.githubusercontent.com/facebook/react-native/master/.flowconfig网址复制内容创建文件">点击这里</a>)复制文本内容到文件中</p>
+<ul>
+<li>在<code>package.json</code>文件里<code>scripts</code>标签下添加<code>start</code>配置<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&quot;scripts&quot;: &#123;</span><br><span class="line">    &quot;start&quot;: &quot;node node_modules/react-native/local-cli/cli.js start&quot;</span><br><span class="line">  &#125;,</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</blockquote>
+<ul>
+<li><p>添加<code>index.android.js</code>到项目中</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="meta">'use strict'</span>;</span><br><span class="line"><span class="keyword">import</span> React <span class="keyword">from</span> <span class="string">'react'</span>;</span><br><span class="line"><span class="keyword">import</span> &#123;</span><br><span class="line">  AppRegistry,</span><br><span class="line">  StyleSheet,</span><br><span class="line">  Text,</span><br><span class="line">  View</span><br><span class="line">&#125; <span class="keyword">from</span> <span class="string">'react-native'</span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">HelloWorld</span> <span class="keyword">extends</span> <span class="title">React</span>.<span class="title">Component</span> </span>&#123;</span><br><span class="line">  render() &#123;</span><br><span class="line">    <span class="keyword">return</span> (</span><br><span class="line">      &lt;View style=&#123;styles.container&#125;&gt;</span><br><span class="line">        &lt;Text style=&#123;styles.hello&#125;&gt;Hello, World&lt;<span class="regexp">/Text&gt;</span></span><br><span class="line"><span class="regexp">      &lt;/</span>View&gt;</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">var</span> styles = StyleSheet.create(&#123;</span><br><span class="line">  container: &#123;</span><br><span class="line">    flex: <span class="number">1</span>,</span><br><span class="line">    justifyContent: <span class="string">'center'</span>,</span><br><span class="line">  &#125;,</span><br><span class="line">  hello: &#123;</span><br><span class="line">    fontSize: <span class="number">20</span>,</span><br><span class="line">    textAlign: <span class="string">'center'</span>,</span><br><span class="line">    margin: <span class="number">10</span>,</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br><span class="line">AppRegistry.registerComponent(<span class="string">'HelloWorld'</span>, () =&gt; HelloWorld);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在<code>app</code>模块下 <code>build.gradle</code>配置</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">dependencies &#123;</span><br><span class="line">...</span><br><span class="line">compile &quot;com.facebook.react:react-native:+&quot; // From node_modules.</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<blockquote>
+<p> <strong>注意：</strong> 最新版本中支持的是23，appcompat-v7:23.0.1**，暂时没有试24的api</p>
+</blockquote>
+<ul>
+<li><p>整个工程下<code>build.gradle</code>配置</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">allprojects &#123;</span><br><span class="line">repositories &#123;</span><br><span class="line">    ...</span><br><span class="line">    maven &#123;</span><br><span class="line">        // All of React Native (JS, Android binaries) is installed from npm</span><br><span class="line">        url &quot;$rootDir/node_modules/react-native/android&quot;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>添加权限<br>在<code>AndroidManifest.xml</code>添加<code>&lt;uses-permission android:name=&quot;android.permission.INTERNET&quot; /&gt;</code></p>
+</li>
+<li><p>集成ReactActivity</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public class MyReactActivity extends ReactActivity &#123;</span><br><span class="line">    @Nullable</span><br><span class="line">    @Override</span><br><span class="line">    protected String getMainComponentName() &#123;</span><br><span class="line">        return &quot;HelloWorld&quot;;//组件名</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在<code>Terminal</code>中启动服务</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">npm start </span><br><span class="line">//等效`package.json`中的`node node_modules/react-native/local-cli/cli.js start`</span><br></pre></td></tr></table></figure>
+<p>  运行 <code>npm start</code>，看到下图表示启动成功<br><img src="/posts/c7347a69/auto-orient/strip|imageView2/2/w/1000/format/webp" alt="image.png"></p>
+</li>
+<li>运行模拟器，启动定义的MyReactActivity即可</li>
+</ul>
+<hr>
+<p>参考链接：<br><a href="http://www.jianshu.com/p/22aa14664cf9?open_source=weibo_search" target="_blank" rel="noopener">史上最详细的Android原生APP中添加ReactNative 进行混合开发教程</a><br><a href="http://www.jianshu.com/p/fc29c86fc2b8" target="_blank" rel="noopener">原生 Android 项目集成 React Native</a></p>
+]]></content>
+      <categories>
+        <category>ReactNative</category>
+      </categories>
+      <tags>
+        <tag>ReactNative</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>ReactNative入门</title>
+    <url>/posts/9437ab1b.html</url>
+    <content><![CDATA[<p>目前主流应用程序大体分为三类：<code>Native App</code>, <code>Web App</code>, <code>Hybrid App</code>.<br><img src="/posts/9437ab1b/93730-adb52d444d71a1ad.webp" alt="示例（来源网络）.png"></p>
+<p>三者各有利弊，具体对比差异<a href="http://www.uisdc.com/web-hybrid-native-app" target="_blank" rel="noopener">点击这里</a></p>
+<p><b><code>React Native</code></b> 是 <code>Facebook</code> 推出的一个用 <code>Java</code> 语言就能同时编写 <code>ios</code>，<code>android</code>，以及后台的一项技术。 <code>FaceBook</code> 也号称这们技术是 “<code>Learn Once，Write AnyWhere</code>”。<br><a id="more"></a><br><b><code>React Native</code>的优势：</b></p>
+<ul>
+<li><p>相对<code>Webapp</code>：</p>
+<blockquote>
+<p>不用<code>Webview</code>，彻底摆脱了<code>Webview</code>让人不爽的交互和性能问题<br>有较强的扩展性，这是因为<code>Native</code>端提供的是基本控件，<code>JS</code>可以自由组合使用</p>
+</blockquote>
+</li>
+<li><p>相对于<code>Native app</code>：</p>
+<blockquote>
+<p>可以通过更新远端<code>JS</code>，实现热更新。</p>
+</blockquote>
+</li>
+</ul>
+<p>是不是已经迫不及待运行看看了……<br><b>安装</b></p>
+<ul>
+<li><b>Chocolatey</b><br><a href="https://chocolatey.org/" target="_blank" rel="noopener"><code>Chocolatey</code></a>是一个<code>Windows</code>上的包管理器，类似于<code>linux</code>上的<code>yum</code>和 <code>apt-get</code>。</li>
+<li><p><b>Python 2</b><br>打开命令提示符窗口，使用<code>Chocolatey</code>来安装<code>Python 2</code>.</p>
+<blockquote>
+<p>choco install python2</p>
+</blockquote>
+</li>
+<li><p><b>Node</b><br>打开命令提示符窗口，使用<code>Chocolatey</code>来安装<code>NodeJS</code>.</p>
+<blockquote>
+<p>choco install nodejs.install</p>
+</blockquote>
+</li>
+<li><p><b>React Native命令行工具（react-native-cli）</b><br><code>React Native</code>的命令行工具用于执行创建、初始化、更新项目、运行打包服务<code>packager</code>等任务。</p>
+<blockquote>
+<p>npm install -g react-native-cli</p>
+</blockquote>
+</li>
+</ul>
+<p>当然作为一名有素质的<code>Android Coder</code>，<code>JDK</code> 、<code>Android Studio</code> 、<code>Git</code> 、<code>Emulator</code>不能少。</p>
+<p><b>测试安装</b><br>启动模拟器，cmd下键入<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">react-native init AwesomeProject</span><br><span class="line">cd AwesomeProject</span><br><span class="line">react-native run-android</span><br></pre></td></tr></table></figure></p>
+<p>项目目录结构：<br><img src="/posts/9437ab1b/93730-6587e76d08aa81df.webp" alt="项目目录.png"><br>运行命令<br><img src="/posts/9437ab1b/93730-8c9704ee0132de3c.webp" alt="image1.png"><br><img src="/posts/9437ab1b/93730-928b549b7583cb62.webp" alt="image2.png"><br>模拟器运行结果：<br><img src="/posts/9437ab1b/93730-c52244dd079b6687.pngwebp" alt="模拟器运行结果（背景色有修改）.png"></p>
+<p>有个常见的问题是在你运行<code>react-native run-android</code>命令后，<code>Packger</code>可能不会自动运行。此时你可以手动启动它<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">cd AwesomeProject</span><br><span class="line">react-native start</span><br></pre></td></tr></table></figure></p>
+<p><b>修改项目</b><br>现在你已经成功运行了项目，我们可以开始尝试动手改一改了：<br>使用你喜欢的文本编辑器打开<code>index.android.js</code><br>并随便改上几行，按两下<code>R</code>键，或是用<code>Menu</code>键（通常是<code>F2</code>，在<code>Genymotion</code>模拟器中是<code>⌘+M</code>）打开开发者菜单，然后选择 <em><code>Reload JS</code></em> 就可以看到你的最新修改。</p>
+<p>完成！</p>
+<p>参考链接：<br><a href="http://reactnative.cn/docs/0.31/getting-started.html" target="_blank" rel="noopener">ReactNative中文网</a><br><a href="http://facebook.github.io/react-native/docs/getting-started.html" target="_blank" rel="noopener">ReactNative官网</a><br><a href="http://wiki.jikexueyuan.com/list/react/" target="_blank" rel="noopener">ReactNative基础教程</a></p>
+]]></content>
+      <categories>
+        <category>ReactNative</category>
+      </categories>
+      <tags>
+        <tag>ReactNative环境搭建</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Android系统全貌</title>
+    <url>/posts/7e3d7b9f.html</url>
+    <content><![CDATA[<blockquote>
+<p>转自Gityuan的<a href="http://gityuan.com/android/#syscall--jni" target="_blank" rel="noopener">Android开篇</a>，对自我学习作进一步整理。</p>
+</blockquote>
+<blockquote>
+<p>Android系统以<code>Linux内核</code>作为基底，上层采用<code>Native层</code>和<code>Java层</code>。系统分为内核空间和用户空间，并通过系统调用（<code>Syscall</code>）连通。用户空间主要采用C++和Java代码实现，通过<code>JNI</code>技术连通Java层和Native层（C/C++）。</p>
+</blockquote>
+<p><img src="/posts/7e3d7b9f/1.jpg" alt="图片来源  [GITYUAN](http://gityuan.com/android/)"><br><a id="more"></a></p>
+<h1 id="Loader层"><a href="#Loader层" class="headerlink" title="Loader层"></a>Loader层</h1><ul>
+<li><b>Boot ROM</b>: 电源按下,引导芯片代码开始从预定义的地方（固化在ROM）开始执行.加载引导程序到<code>RAM</code>,然后执行.</li>
+<li><b>Boot Loader</b>: 这是<code>Android</code>系统系统之前的引导程序，主要用来检测外部的<code>RAM</code>以及设置网络、内存、初始化硬件参数等.</li>
+</ul>
+<p>#Kernel层<br>Kernel层是指<code>Android</code>内核层，到这里才刚刚开始进入<code>Android</code>系统。</p>
+<ul>
+<li>启动<code>Kernel</code>的<b>swapper进程</b>(pid=0)：该进程又称为<code>idle</code>进程, 系统初始化过程<code>Kernel</code>由无到有开创的第一个进程, 用于初始化进程管理、内存管理，加载<code>Display,Camera Driver，Binder Driver</code>等相关工作(图中<code>kernel</code>层蓝色区块)；</li>
+<li>启动<b>kthreadd进程</b>（pid=2）：是<code>Linux</code>系统的内核进程，会创建内核工作线程<code>kworkder</code>，软中断线程<code>ksoftirqd，thermal</code>等一系列内核守护进程。<code>kthreadd进程是所有内核进程的父进程。</code></li>
+</ul>
+<p><code>Linux</code>内核加载主要包括初始化<code>kernel</code>核心（内存初始化，打开中断，初始化进程表等）、初始化驱动、启动内核后台（<code>daemons</code>)线程、安装根（<code>root</code>)文件系统等。后续启动第一个用户级进程<code>init</code>（pid=1）.</p>
+<p>#Native层<br><code>Native层</code>主要包括启动<code>init进程</code>（<code>Android</code>的第一个用户空间进程）、<code>HAL层</code>（<a href="http://baike.baidu.com/link?url=eyv4w4VuCQxHW3GGJvJ4QDDbBvWbjPZYjo5GLaFRZE0xkm5Cu58zqOr6ZaexIEWsi7bCWUoKehTUN5WsHumhR2HGB4KXh8ruMbnXvDdlVZH5_hGk8Zi9nB5Op_qY8Ixn" target="_blank" rel="noopener">硬件抽象层</a>）以及<code>开机动画</code>等。<code>init进程是所有用户进程的鼻祖</code>。同时<code>init进程</code>也会孵化一系列用户进程，还会启动关键的服务以及孵化<code>Zygote进程</code>。</p>
+<ul>
+<li><code>init进程</code>会孵化出<code>ueventd、logd、healthd、installd、adbd、lmkd</code>等用户守护进程；</li>
+<li><code>init进程</code>还启动<code>servicemanager(binder服务管家)、bootanim(开机动画)</code>等重要服务</li>
+<li><code>init进程</code>孵化出<code>Zygote进程</code>，<code>Zygote进程</code>是Android系统的第一个<code>Java进程</code>，<code>Zygote是所有Java进程的父进程</code>，<code>Zygote进程</code>本身是由<code>init进程</code>孵化而来的。</li>
+</ul>
+<blockquote>
+</blockquote>
+<ul>
+<li>kthreadd进程: 是所有内核进程的父进程</li>
+<li>init进程 ： 是所有用户进程的父进程(或者父父进程)</li>
+<li>zygote进程 ： 是所有上层Java进程的父进程，另外zygote的父进程是init进程。</li>
+</ul>
+<p>#Framework层<br>如图，<code>Framework层</code>分为<code>Java Frameword</code>和<code>C++ Framework</code>，分别由<code>system_server进程</code>和<code>media_server进程</code>负责启动和管理。</p>
+<p><code>Zygote</code>本身是一个<code>Native</code>的应用程序，刚开始的名字为<code>“app_process”</code>，运行过程中，通过系统调用将自己名字改为<code>Zygote</code>。在图中的红色线，便是<code>Zygote fork</code>出来的进程，所有的<code>App进程</code>都是由<code>Zygote fork</code>产生的。<br><img src="/posts/7e3d7b9f/2.webp" alt="image.png"></p>
+<ul>
+<li><code>Zygote进程</code>，是由init进程通过解析init.rc文件后fork生成的，Zygote进程主要包含：<br>加载ZygoteInit类，注册Zygote Socket服务端套接字；<br>加载虚拟机；<br>preloadClasses；<br>preloadResouces。</li>
+<li><code>System Server进程</code>，是由Zygote进程fork而来，System Server是Zygote孵化的第一个进程，System Server负责启动和管理整个Java framework，包含ActivityManager，PowerManager等服务。</li>
+<li><code>Media Server进程</code>，是由init进程fork而来，负责启动和管理整个C++ framework，包含AudioFlinger，Camera Service，等服务。</li>
+</ul>
+<p>#App层</p>
+<ul>
+<li><code>Zygote进程孵化出的第一个App进程是Launcher</code>，这是用户看到的桌面App；</li>
+<li>Zygote进程还会创建Browser，Phone，Email等App进程，每个App至少运行在一个进程上。</li>
+<li>所有的App进程都是由Zygote进程fork生成的。</li>
+</ul>
+<h1 id="Syscall-amp-amp-JNI"><a href="#Syscall-amp-amp-JNI" class="headerlink" title="Syscall &amp;&amp; JNI"></a>Syscall &amp;&amp; JNI</h1><ul>
+<li>Native与Kernel之间有一层系统调用(SysCall)层，见<a href="http://gityuan.com/2016/05/21/syscall/" target="_blank" rel="noopener">Linux系统调用(Syscall)原理</a>;</li>
+<li>Java层与Native(C/C++)层之间的纽带JNI，见<a href="http://gityuan.com/2016/05/28/android-jni/" target="_blank" rel="noopener">Android JNI原理分析</a>。</li>
+</ul>
+<p><a href="http://www.tuicool.com/articles/U3UvIrY" target="_blank" rel="noopener">Andorid的启动过程</a><br><a href="http://www.cnblogs.com/android-blogs/p/5632549.html" target="_blank" rel="noopener"><a href="http://www.cnblogs.com/android-blogs/p/5632549.html" target="_blank" rel="noopener">Android进程整理</a></a></p>
+]]></content>
+      <categories>
+        <category>Android</category>
+      </categories>
+      <tags>
+        <tag>Android系统全貌</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>一个人，仰望</title>
+    <url>/posts/c079cf7.html</url>
+    <content><![CDATA[<p>渐渐地，渐渐地……</p>
+<p>发现自己依然是一个人，一个人听歌，一个人赏月，一个人漫步，一个人听雨，一个人……</p>
+<p>静静地，静静地……</p>
+<p>发现自己已经是一个人了。喧闹的街道终于送走了独自一个人的我，也宽容了窸窣的虫子彼此的甜言蜜语。</p>
+<p>戴着白色的耳机，悬着白色的线，连着白色的手机。听一曲《清明雨上》的情感。随之，我开始闲庭信步，在昏黄的路灯下，显得那样复古及久远。从灯光的这一头走到那一头，一步一步感受着音乐的旋律。不觉看到影子的跟随，忽然有一种伤感。虽已不再是一个人的寂寞，但另一个人却因我的喜怒哀乐而变化多端。看着他渐拉渐长，又在昏暗中消失，我又开始转身，或许，无论怎样，我都没有理由失去他。因为在此，也只有我有一个人，只有它才能陪我，因为在此，我在人间彷徨，寻不到你的天堂。<br><a id="more"></a><br>听着听着，不觉为《清明雨上》前奏小谱一词：</p>
+<blockquote>
+<p>幽幽然又悠悠梦长<br>款款风是款款离殇<br>君自舞断肠犹记君模样<br>痴情两相望</p>
+</blockquote>
+<p>慢慢地，慢慢地……</p>
+<p>发现自己习惯一个人了。或许，时间是化解一切的良药，久了，便也习惯了。习惯了看空寂的天空中闪烁的数点星，习惯了在悠远的灯光下独倚一个人——我。</p>
+<p>有人说，一个人的时候，泪在蠢蠢欲动，心在隐隐作痛。想想，也是的。</p>
+<p>习惯了一个人便也习惯了泪动心痛的感受，但<del>~</del>却不是麻木，而是~开始了回忆。回忆一个人，一个让我有心痛泪动感觉的人。一个肯让我今生挥毫的人，只为那个人。而或习惯了幻想，幻想一个依依不舍，心心相印的人。</p>
+<p>想想小四也有过如此这般的感觉：</p>
+<blockquote>
+<p>我是一个在感到寂寞的时候就会仰望天空的小孩，望着那个大太阳，望着那个大月亮，望到脖子酸痛，望到眼中噙满泪水。这是真的。而我笔下的那些东西，他们也是真的。那些如同不肯愈合的伤口一样寂寞的人，总会在每个夜晚铁马冰河般地闯入我的梦中。前世今生。物是人非。斗转星移。沧海桑田。一梦千年。永世不醒。一个人总是下意识的靠近一些与自己相似的人。我记得有人这么说过。于是我知道了原来我身体里流淌的血液是如此的寂寞。冰蓝色的血液最寂寞。身边的人说我走路的姿势是寂寞的。双手插在口袋里，眼睛盯着前面一处不可知的地方。朋友说我写字的时候才是真正寂寞的，眼睛里忽暗忽明的色泽。姿势是一种完美的防御。其实抬头仰望的时候，我才是真正寂寞的，可是我总是在只有一个人的时候才仰望天空。我真的是个好孩子，只是偶尔寂寞的时候，会傻傻的仰望天空。</p>
+</blockquote>
+<p>我就是这样一个孩子，我诚实，我不说谎。但如果有一天你在街上碰见一个仰望天空的孩子，那一定不是我，因为我仰望天空的时候，没人看见。</p>
+]]></content>
+      <categories>
+        <category>随笔</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>代理模式</title>
+    <url>/posts/7b510e10.html</url>
+    <content><![CDATA[<blockquote>
+<p>代理模式（<code>Proxy Pattern</code>）也称为委托模式。本质就是为某对象提供一种代理以控制对这个对象的访问。</p>
+</blockquote>
+<p>##场景<br>很不幸你碰到了一个老板不给你发工资，你会请个律师帮你打官司。很显然你对打官司一窍不通，因此只能通过代理对象去间接打官司。你作为委托对象，律师作为代理对象，<strong>都需要实现相同的接口或继承相同的抽象类</strong>。</p>
+<p>##UML类图<br><img src="/posts/7b510e10/93730-3367f30dd2bc9a9b.webp" alt="类图.png"><br><a id="more"></a></p>
+<h2 id="简单实现"><a href="#简单实现" class="headerlink" title="简单实现"></a>简单实现</h2><ol>
+<li><p>诉讼接口类</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 诉讼接口类</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">ILawsuit</span> </span>&#123;</span><br><span class="line">	<span class="comment">//诉讼方法</span></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">lawsuit</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>诉讼人</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 诉讼人（委托类）</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Person</span> <span class="keyword">implements</span> <span class="title">ILawsuit</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">lawsuit</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        System.out.print(<span class="string">"我要诉讼"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>代理律师</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 代理律师（代理对象）</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Laywer</span> <span class="keyword">implements</span> <span class="title">ILawsuit</span> </span>&#123;</span><br><span class="line">   </span><br><span class="line">    <span class="keyword">private</span> ILawsuit mLawsuit; <span class="comment">//持有被代理者的引用</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Laywer</span><span class="params">(ILawsuit lawsuit)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.mLawsuit = lawsuit;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">lawsuit</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        mLawsuit.lawsuit();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>客户端调用</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">	Person mPerson = <span class="keyword">new</span> Person();</span><br><span class="line">	<span class="comment">//构造一个代理律师，并将被代理者作为构造参数传递进去</span></span><br><span class="line">	ILawsuit iLawsuit = <span class="keyword">new</span> Laywer(mPerson);</span><br><span class="line">	iLawsuit.lawsuit();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>显然，一个律师可以帮很多人打官司。其实我们这个代理类可以代理多个诉讼者，只要诉讼实现<code>ILawsuit</code>接口，并将其作为构造参数传递进去。</p>
+<blockquote>
+<p>代理模式大致分为两种：一是静态代理，二是动态代理。<br>上述示例即为静态代理，代码运行前代理类的class编译文件已经存在了。而动态代理则相反，它是通过反射机制动态地生成代理对象。Java给我们提供了动态代理接口InvocationHandler，实现此接口需要重写invoke方法。</p>
+</blockquote>
+<p>##延伸</p>
+<p><img src="/posts/7b510e10/93730-280023717716ac7b.webp" alt="AIDL类图.png"><br>回想《<a href="http://www.jianshu.com/p/182c68548851" target="_blank" rel="noopener">AIDL浅析</a>》一文中类图（如上），正是使用了代理模式。</p>
+<p><code>IMyAidlInterface.Stub</code>作为委托类，<code>IMyAidlInterface.Stub.Proxy</code>作为代理类，都实现了<code>IMyAidlInterface</code>接口。而<code>Stub</code>是个抽象类，并不处理过多的具体逻辑，真实的逻辑还是在<code>RemoteService</code>中继承了<code>IMyAidlInterface.Stub</code>的子类<code>MyBinder</code>里。客户端调用<code>Stub.asInterface</code>方法将<code>MyBinder</code>对象作为参数传递，返回一个<code>AIDL</code>对象，执行<code>add</code>方法。而真实的流程是，<code>asInterface</code>方法首先会在本地查找<code>AIDL</code>对象，如果没有则实例化<code>Proxy</code>，<code>MyBinder</code>作为参数，执行<code>add</code>方法。显然<code>Proxy</code>代理了<code>Stub</code>的<code>add</code>方法。</p>
+<p>而追溯到底层，就需要了解<a href="http://gityuan.com/2015/10/31/binder-prepare/" target="_blank" rel="noopener">Binder跨进程通信机制</a>了。</p>
+]]></content>
+      <categories>
+        <category>设计模式</category>
+      </categories>
+      <tags>
+        <tag>代理</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>使用Gradle查看Android项目中库的依赖关系</title>
+    <url>/posts/7ae8874e.html</url>
+    <content><![CDATA[<p>在<code>Terminal</code>中，可以通过 <code>gradle</code> 的命令查看项目中所使用库的版本，并且可以更加直观<strong>看到库之间的依赖关系</strong>。同时它们可以帮助您跟踪并<strong>解决与库版本冲突</strong>有关的任何问题。<a href="https://guides.gradle.org/building-android-apps/" target="_blank" rel="noopener">Building Android apps</a></p>
+<hr>
+<h1 id="dependencies"><a href="#dependencies" class="headerlink" title="dependencies"></a>dependencies</h1><p><strong>指令</strong>：</p>
+<blockquote>
+<p>$ ./gradlew :app:dependencies –configuration compile</p>
+</blockquote>
+<p><strong>说明</strong>：<br>在<code>Window</code>系统下，无需使用<code>./</code>开头，直接使用gradlew即可。<br>执行<code>app</code>模块下的<code>dependencies</code>任务；额外配置<code>compile</code>,编译环境下的依赖项。</p>
+<a id="more"></a>
+<p><strong>结果</strong>：<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">:app:dependencies</span><br><span class="line"></span><br><span class="line">------------------------------------------------------------</span><br><span class="line">Project :app</span><br><span class="line">------------------------------------------------------------</span><br><span class="line"></span><br><span class="line">compile - Classpath for compiling the main sources.</span><br><span class="line">+--- com.android.support:appcompat-v7:25.3.1</span><br><span class="line">|    +--- com.android.support:support-annotations:25.3.1</span><br><span class="line">|    +--- com.android.support:support-v4:25.3.1</span><br><span class="line">|    |    +--- com.android.support:support-compat:25.3.1</span><br><span class="line">|    |    |    \--- com.android.support:support-annotations:25.3.1</span><br><span class="line">|    |    +--- com.android.support:support-media-compat:25.3.1</span><br><span class="line">|    |    |    +--- com.android.support:support-annotations:25.3.1</span><br><span class="line">|    |    |    \--- com.android.support:support-compat:25.3.1 (*)</span><br><span class="line">|    |    +--- com.android.support:support-core-utils:25.3.1</span><br><span class="line">|    |    |    +--- com.android.support:support-annotations:25.3.1</span><br><span class="line">|    |    |    \--- com.android.support:support-compat:25.3.1 (*)</span><br><span class="line">|    |    +--- com.android.support:support-core-ui:25.3.1</span><br><span class="line">|    |    |    +--- com.android.support:support-annotations:25.3.1</span><br><span class="line">|    |    |    \--- com.android.support:support-compat:25.3.1 (*)</span><br><span class="line">|    |    \--- com.android.support:support-fragment:25.3.1</span><br><span class="line">|    |         +--- com.android.support:support-compat:25.3.1 (*)</span><br><span class="line">|    |         +--- com.android.support:support-media-compat:25.3.1 (*)</span><br><span class="line">|    |         +--- com.android.support:support-core-ui:25.3.1 (*)</span><br><span class="line">|    |         \--- com.android.support:support-core-utils:25.3.1 (*)</span><br><span class="line">|    +--- com.android.support:support-vector-drawable:25.3.1</span><br><span class="line">|    |    +--- com.android.support:support-annotations:25.3.1</span><br><span class="line">|    |    \--- com.android.support:support-compat:25.3.1 (*)</span><br><span class="line">|    \--- com.android.support:animated-vector-drawable:25.3.1</span><br><span class="line">|         \--- com.android.support:support-vector-drawable:25.3.1 (*)</span><br><span class="line">+--- com.android.support:support-v4:25.3.1 (*)</span><br><span class="line">+--- com.android.support:recyclerview-v7:25.3.1</span><br><span class="line">|    +--- com.android.support:support-annotations:25.3.1</span><br><span class="line">|    +--- com.android.support:support-compat:25.3.1 (*)</span><br><span class="line">|    \--- com.android.support:support-core-ui:25.3.1 (*)</span><br><span class="line">+--- com.android.support:design:25.3.1</span><br><span class="line">|    +--- com.android.support:support-v4:25.3.1 (*)</span><br><span class="line">|    +--- com.android.support:appcompat-v7:25.3.1 (*)</span><br><span class="line">|    +--- com.android.support:recyclerview-v7:25.3.1 (*)</span><br><span class="line">|    \--- com.android.support:transition:25.3.1</span><br><span class="line">|         +--- com.android.support:support-annotations:25.3.1</span><br><span class="line">|         \--- com.android.support:support-v4:25.3.1 (*)</span><br><span class="line">+--- com.yqritc:recyclerview-flexibledivider:1.2.9</span><br><span class="line">+--- com.belerweb:pinyin4j:2.5.0</span><br><span class="line">+--- com.j256.ormlite:ormlite-android:5.0</span><br><span class="line">|    \--- com.j256.ormlite:ormlite-core:5.0</span><br><span class="line">+--- com.j256.ormlite:ormlite-core:5.0</span><br><span class="line">+--- com.alibaba:arouter-api:1.2.1.1</span><br><span class="line">|    +--- com.alibaba:arouter-annotation:1.0.3</span><br><span class="line">|    \--- com.android.support:support-v4:25.2.0 -&gt; 25.3.1 (*)</span><br><span class="line">+--- pub.devrel:easypermissions:0.4.0</span><br><span class="line">+--- com.github.CymChad:BaseRecyclerViewAdapterHelper:2.9.18</span><br><span class="line">+--- com.afollestad.material-dialogs:core:0.9.4.5</span><br><span class="line">|    +--- com.android.support:support-v13:25.3.1</span><br><span class="line">|    |    +--- com.android.support:support-annotations:25.3.1</span><br><span class="line">|    |    \--- com.android.support:support-v4:25.3.1 (*)</span><br><span class="line">|    +--- com.android.support:appcompat-v7:25.3.1 (*)</span><br><span class="line">|    +--- com.android.support:recyclerview-v7:25.3.1 (*)</span><br><span class="line">|    +--- com.android.support:support-annotations:25.3.1</span><br><span class="line">|    \--- me.zhanghai.android.materialprogressbar:library:1.4.1</span><br><span class="line">|         +--- com.android.support:appcompat-v7:25.3.1 (*)</span><br><span class="line">|         \--- com.android.support:support-annotations:25.3.1</span><br><span class="line">+--- com.alibaba:fastjson:1.2.32</span><br><span class="line">\--- com.esri.arcgis.android:arcgis-android:10.2.9</span><br><span class="line"></span><br><span class="line">(*) - dependencies omitted (listed previously)</span><br><span class="line"></span><br><span class="line">BUILD SUCCESSFUL</span><br><span class="line"></span><br><span class="line">Total time: 11.69 secs</span><br></pre></td></tr></table></figure></p>
+<p>从中可以发现44行：<code>com.alibaba:arouter-api:1.2.1.1</code>依赖的<code>support-v4</code>库版本比当前环境版本低，因此可以使用<code>exclude</code>剔除旧版本库，避免冲突！<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">compile(&apos;com.alibaba:arouter-api:1.2.1.1&apos;) &#123;</span><br><span class="line">        exclude module: &apos;support-v4&apos;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h1 id="dependencyInsight"><a href="#dependencyInsight" class="headerlink" title="dependencyInsight"></a>dependencyInsight</h1><p><strong>指令</strong>：</p>
+<blockquote>
+<p>$ ./gradlew :app:dependencyInsight –dependency fastjson –configuration compile</p>
+</blockquote>
+<p><strong>说明</strong>：<br>查看指定库的依赖关系</p>
+<p><strong>结果</strong>：<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">:app:dependencyInsight</span><br><span class="line">com.android.support:support-annotations:25.3.1</span><br><span class="line">+--- com.afollestad.material-dialogs:core:0.9.4.5</span><br><span class="line">|    \--- compile</span><br><span class="line">+--- com.android.support:appcompat-v7:25.3.1</span><br><span class="line">|    +--- compile</span><br><span class="line">|    +--- com.android.support:design:25.3.1</span><br><span class="line">|    |    \--- compile</span><br><span class="line">|    +--- com.afollestad.material-dialogs:core:0.9.4.5 (*)</span><br><span class="line">|    \--- me.zhanghai.android.materialprogressbar:library:1.4.1</span><br><span class="line">|         \--- com.afollestad.material-dialogs:core:0.9.4.5 (*)</span><br><span class="line">+--- com.android.support:recyclerview-v7:25.3.1</span><br><span class="line">|    +--- compile</span><br><span class="line">|    +--- com.android.support:design:25.3.1 (*)</span><br><span class="line">|    \--- com.afollestad.material-dialogs:core:0.9.4.5 (*)</span><br><span class="line">+--- com.android.support:support-compat:25.3.1</span><br><span class="line">|    +--- com.android.support:support-v4:25.3.1</span><br><span class="line">|    |    +--- compile</span><br><span class="line">|    |    +--- com.android.support:appcompat-v7:25.3.1 (*)</span><br><span class="line">|    |    +--- com.android.support:design:25.3.1 (*)</span><br><span class="line">|    |    +--- com.alibaba:arouter-api:1.2.1.1</span><br><span class="line">|    |    |    \--- compile</span><br><span class="line">|    |    +--- com.android.support:transition:25.3.1</span><br><span class="line">|    |    |    \--- com.android.support:design:25.3.1 (*)</span><br><span class="line">|    |    \--- com.android.support:support-v13:25.3.1</span><br><span class="line">|    |         \--- com.afollestad.material-dialogs:core:0.9.4.5 (*)</span><br><span class="line">|    +--- com.android.support:recyclerview-v7:25.3.1 (*)</span><br><span class="line">|    +--- com.android.support:support-vector-drawable:25.3.1</span><br><span class="line">|    |    +--- com.android.support:appcompat-v7:25.3.1 (*)</span><br><span class="line">|    |    \--- com.android.support:animated-vector-drawable:25.3.1</span><br><span class="line">|    |         \--- com.android.support:appcompat-v7:25.3.1 (*)</span><br><span class="line">|    +--- com.android.support:support-media-compat:25.3.1</span><br><span class="line">|    |    +--- com.android.support:support-v4:25.3.1 (*)</span><br><span class="line">|    |    \--- com.android.support:support-fragment:25.3.1</span><br><span class="line">|    |         \--- com.android.support:support-v4:25.3.1 (*)</span><br><span class="line">|    +--- com.android.support:support-core-utils:25.3.1</span><br><span class="line">|    |    +--- com.android.support:support-v4:25.3.1 (*)</span><br><span class="line">|    |    \--- com.android.support:support-fragment:25.3.1 (*)</span><br><span class="line">|    +--- com.android.support:support-core-ui:25.3.1</span><br><span class="line">|    |    +--- com.android.support:support-v4:25.3.1 (*)</span><br><span class="line">|    |    +--- com.android.support:recyclerview-v7:25.3.1 (*)</span><br><span class="line">|    |    \--- com.android.support:support-fragment:25.3.1 (*)</span><br><span class="line">|    \--- com.android.support:support-fragment:25.3.1 (*)</span><br><span class="line">+--- com.android.support:support-core-ui:25.3.1 (*)</span><br><span class="line">+--- com.android.support:support-core-utils:25.3.1 (*)</span><br><span class="line">+--- com.android.support:support-media-compat:25.3.1 (*)</span><br><span class="line">+--- com.android.support:support-v13:25.3.1 (*)</span><br><span class="line">+--- com.android.support:support-vector-drawable:25.3.1 (*)</span><br><span class="line">+--- com.android.support:transition:25.3.1 (*)</span><br><span class="line">\--- me.zhanghai.android.materialprogressbar:library:1.4.1 (*)</span><br><span class="line"></span><br><span class="line">(*) - dependencies omitted (listed previously)</span><br><span class="line"></span><br><span class="line">BUILD SUCCESSFUL</span><br><span class="line"></span><br><span class="line">Total time: 13.388 secs</span><br></pre></td></tr></table></figure></p>
+]]></content>
+      <categories>
+        <category>Android</category>
+      </categories>
+      <tags>
+        <tag>Gradle</tag>
+        <tag>dependencies</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>使用Hexo在GitHub上构建个人博客</title>
+    <url>/posts/fdd817a6.html</url>
+    <content><![CDATA[<h1 id="Hexo介绍"><a href="#Hexo介绍" class="headerlink" title="Hexo介绍"></a>Hexo介绍</h1><p>Hexo 是一个简单地、轻量地、基于Node的一个静态博客框架。通过Hexo我们可以快速创建自己的博客。<br>对于个人用户而言，部署到GitHub上方便，快捷。省去了服务器成本。<br><a href="http://hexo.io/" target="_blank" rel="noopener">Hexo官网</a></p>
+<h1 id="Hexo安装"><a href="#Hexo安装" class="headerlink" title="Hexo安装"></a>Hexo安装</h1><ul>
+<li>安装Hexo之前建议先安装<strong>Git.exe</strong>和<strong>node.js</strong>； <blockquote>
+<p><a href="https://git-scm.com/download/win" target="_blank" rel="noopener">https://git-scm.com/download/win</a><br><a href="https://nodejs.org/en/" target="_blank" rel="noopener">https://nodejs.org/en/</a></p>
+</blockquote>
+</li>
+<li>创建目录,例如D:\Temp\Hexo,打开Git Bash,进入此目录<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ cd D:</span><br><span class="line">$ cd Temp/Hexo/</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<a id="more"></a>
+<ul>
+<li><p>安装Hexo</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ npm install -g hexo</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>查看hexo版本</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ hexo version</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>初始化hexo</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">hexo init</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>启动Hexo服务器，提示端口打开</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ hexo server 或 hexo s</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在浏览器访问 <strong><a href="http://localhost:4000" target="_blank" rel="noopener">http://localhost:4000</a></strong> 出现默认的网页！至此，基本完成。</p>
+</li>
+</ul>
+<h1 id="创建Github-Pages"><a href="#创建Github-Pages" class="headerlink" title="创建Github Pages"></a>创建Github Pages</h1><p>参考如下地址，分分钟完成<strong>github pages</strong>建站</p>
+<blockquote>
+<p><a href="https://pages.github.com/" target="_blank" rel="noopener">https://pages.github.com/</a></p>
+</blockquote>
+<h1 id="发布项目到Github"><a href="#发布项目到Github" class="headerlink" title="发布项目到Github"></a>发布项目到Github</h1><p>##静态化处理<br>Hexo是静态博客框架。静态博客，是只包含html, javascript, css文件的网站，没有动态的脚本。虽然我们是用Node进行的开发，但博客的发布后就与Node无关了。在发布之前，我们要通过一条命令，把所有的文章都做静态化处理，就是生成对应的html, javascript, css，使得所有的文章都是由静态文件组成的。</p>
+<ul>
+<li><p>静态化命令</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ hexo generate 或 hexo g</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>配置<br>编辑Hexo目录下<strong>站点配置文件</strong>:_config.yml，找到deploy的部分，设置项目地址（注意username替换成自己的名字）：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  type: git</span><br><span class="line">  repo: https://github.com/username/username.github.io.git</span><br><span class="line">  branch: master</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>部署命令</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ hexo deploy 或 hexo d</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>部署过程中遇到问题解决，需安装hexo自动部署git工具，然后在执行部署命令</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ npm install hexo-deployer-git --save</span><br><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>每次部署步骤如下：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ hexo clean</span><br><span class="line">$ hexo generate</span><br><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>至此，我们的博客就完美的发布到了Github上，可以访问以下<a href="http://username.github.io.git试试了。" target="_blank" rel="noopener">http://username.github.io.git试试了。</a><br>当然，默认的效果也许你并不喜欢，你可以任意替换自己想要的主题。</p>
+<h1 id="配置主题"><a href="#配置主题" class="headerlink" title="配置主题"></a>配置主题</h1><p><a href="https://hexo.io/themes/" target="_blank" rel="noopener"><strong>主题网站</strong></a><br>在 Hexo 中有两份主要的配置文件，其名称都是 _config.yml。 其中，一份位于站点根目录下，主要包含 Hexo 本身的配置；另一份位于主题目录下，这份配置有主题作者提供，主要用于配置主题相关的选项。</p>
+<p>为了描述方便，在以下说明中，将前者称为 <strong>站点配置文件</strong>， 后者称为 <strong>主题配置文件</strong>。<br>以NexT主题为例：<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ cd D:\Temp\Hexo</span><br><span class="line">$ git clone https://github.com/iissnan/hexo-theme-next themes/next</span><br></pre></td></tr></table></figure></p>
+<h3 id="启动主题"><a href="#启动主题" class="headerlink" title="启动主题"></a>启动主题</h3><p>打开 <strong>站点配置文件</strong>， 找到 theme 字段，并将其值更改为 next。<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">theme: next</span><br></pre></td></tr></table></figure></p>
+<h3 id="修改语言"><a href="#修改语言" class="headerlink" title="修改语言"></a>修改语言</h3><p>打开 <strong>站点配置文件</strong>， 找到 language 字段，并将其值更改为 zh-Hans。<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">language: zh-Hans</span><br></pre></td></tr></table></figure></p>
+<h1 id="NexT主题设置"><a href="#NexT主题设置" class="headerlink" title="NexT主题设置"></a>NexT主题设置</h1><p>详细的配置查看此网站</p>
+<blockquote>
+<p><a href="http://theme-next.iissnan.com/" target="_blank" rel="noopener">http://theme-next.iissnan.com/</a></p>
+</blockquote>
+<h1 id="报错总结"><a href="#报错总结" class="headerlink" title="报错总结"></a>报错总结</h1><p>ERROR Deployer not found: git 或者 ERROR Deployer not found: github<br><strong>解决方法</strong>：<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">npm install hexo-deployer-git --save</span><br></pre></td></tr></table></figure></p>
+<p>感觉自己棒棒哒！</p>
+]]></content>
+      <categories>
+        <category>日志</category>
+      </categories>
+      <tags>
+        <tag>博客</tag>
+        <tag>Hexo</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>名字的故事</title>
+    <url>/posts/765b761e.html</url>
+    <content><![CDATA[<h1 id="雪心草"><a href="#雪心草" class="headerlink" title="雪心草"></a>雪心草</h1><blockquote>
+<p>一片洁白无瑕的雪花，一颗真挚火热的心灵和一株无知稚嫩的小草，编织了这珍惜友情、向往爱情、感恩亲情的雪心草。</p>
+</blockquote>
+<p>我在初中 ……</p>
+<p>忘记了年少时何以写下了这段话，拼凑了这个词。终归还是个不错的笔名？网名？至少用了一整个春夏秋冬。</p>
+<a id="more"></a>
+<h1 id="绵梦萦"><a href="#绵梦萦" class="headerlink" title="绵梦萦"></a>绵梦萦</h1><blockquote>
+<p>舒心的梦，萦绕脑际~</p>
+</blockquote>
+<p>我在高中……<br><!--more--><br>翻阅了整整一本厚厚的汉语词典，零零散散找了三个字，组合在了一起。颇符合当时的心境。舒适，幻想，意犹未尽。</p>
+<p>我很是喜欢好友QQ空间的名字，叫“<strong>陨翼天使的失落国度</strong>”。</p>
+<h1 id="唐风吹无痕"><a href="#唐风吹无痕" class="headerlink" title="唐风吹无痕"></a>唐风吹无痕</h1><blockquote>
+<p>宋雨落无声</p>
+</blockquote>
+<p>我在大一……</p>
+<p>当时，“CF”（穿越火线）已在我宿舍盛行，队长尽心竭力主持大局，创建了战队：<strong>沐唐风宋雨</strong>。打的是技术，拼的是素质，叫出口的那是文采！（熊熊战火有木有）</p>
+<p>唐风小分队成员：<br>唐风吹无痕，唐风吹雪洛，唐风吹蝶澈，唐风吹玲海，唐风吹紫萱，唐风吹灵松，唐风吹迷音…</p>
+<p>宋雨小分队成员：<br>宋雨落无声，宋雨落倾刃，宋雨落闲亭，宋雨落岚觞，宋雨落神韵…</p>
+<p>别有一番风情在心头。</p>
+<h1 id="爱若夜の情"><a href="#爱若夜の情" class="headerlink" title="爱若夜の情"></a>爱若夜の情</h1><blockquote>
+<p>梦似月の影</p>
+</blockquote>
+<p>我在大几？<br>……</p>
+<p>那个时候网络上流行这各种情侣名，火星文。为了紧跟时代的步伐，不能让自己的才华埋没于时代（偷笑）。我可谓是苦思冥想，绞尽脑汁，对出了这么一对非主流的名字。</p>
+<p>我用在了“QQ飞车”里，驰骋边境。</p>
+<h1 id="疯狂的小小鑫"><a href="#疯狂的小小鑫" class="headerlink" title="疯狂的小小鑫"></a>疯狂的小小鑫</h1><blockquote>
+<p>缘起“部落冲突”</p>
+</blockquote>
+<p>我在实习……</p>
+<p>坐拥宿舍一间，晨起三五步便可上班，夜时大厅乒乓一盘。你绝对无法想象我在北京实习。是的，我在快要靠近6环的地方惬意的生活着。</p>
+<p>与我一起上下班的同学注册了一款游戏“部落冲突”，名曰：<strong>疯狂的木叉叉</strong>。我紧跟着脚步也就名曰：疯狂的小小鑫。</p>
+<p>时至今日，手游基本都是这个名字了。</p>
+<h1 id="青菜小王子"><a href="#青菜小王子" class="headerlink" title="青菜小王子"></a>青菜小王子</h1><blockquote>
+<p>或许好笑，但又有些真诚在里面</p>
+</blockquote>
+<p>我入职了……</p>
+<p>我也忘记了为什么这个词会脱口而出。我只记得当时正在和同事一起吃晚饭，一盘青菜肆无忌惮的摆在我面前。至于为什么要得罪“小王子”，把它紧跟其后，已无从考究。</p>
+<p>是“青菜”爱上了“小王子”，还是“小王子”看上了“青菜”？</p>
+<h1 id="小编哟"><a href="#小编哟" class="headerlink" title="小编哟"></a><a href="http://weibo.com/u/2690353693" target="_blank" rel="noopener">小编哟</a></h1><blockquote>
+<p>小小的落款，皆是无心之作</p>
+</blockquote>
+<p>我在职呢……</p>
+<p>入职期间需要培训学习公司文化。</p>
+<p>我只是总结了相关知识点，落款“<strong>小编</strong>”，而后分享给了大家。从此这个或小或大的称呼就别我霸占了，呼呼。</p>
+<p>想在<a href="http://weibo.com/u/2690353693" target="_blank" rel="noopener">微博</a>上注册这个昵称，可惜竟然有人抢先了去。我只得急中生智在后面加了个“哟”。</p>
+<p>从此，就经常被莫名@，一些服务号的小编都会发微博说：欢迎你@小编哟。于是乎就@到了我，其实他们只是想说：欢迎@小编……哟！</p>
+<h1 id="37°青春"><a href="#37°青春" class="headerlink" title="37°青春"></a>37°青春</h1><blockquote>
+<p>怀念青春岁月，尤其是刚刚好的温度。</p>
+</blockquote>
+<p>下班了……</p>
+<p>无意间，看到墙上张贴了一张清新，自然，简洁而大方的海报。几个大字错落有致映入眼帘——37°青春。</p>
+<p>深入我心！</p>
+<h1 id="无痕"><a href="#无痕" class="headerlink" title="无痕"></a>无痕</h1><blockquote>
+<p>武侠文化</p>
+</blockquote>
+<p>阿里巴巴素有武侠文化。</p>
+<p>既然如此，为了融入其中。工作使用钉钉，名曰：<strong>无痕</strong></p>
+]]></content>
+      <categories>
+        <category>随笔</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>响应式编程（学习小结）</title>
+    <url>/posts/6740de51.html</url>
+    <content><![CDATA[<h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><blockquote>
+<p><strong>维基百科：</strong><br>响应式编程或反应式编程（英语：Reactive programming）是一种面向<strong>数据流</strong>和<strong>变化传播</strong>的编程范式。</p>
+</blockquote>
+<p>对于响应式编程，不同语言都有相应的扩展库。例如RxJava、RxAndroid、RxJS等等。</p>
+<blockquote>
+<p><strong>官网：</strong><br>An API for asynchronous programming with observable streams<br>用于使用<strong>可观察流</strong>进行<strong>异步编程</strong>的API</p>
+</blockquote>
+<blockquote>
+<p><strong>个人理解：</strong><br>创建出<strong>数据流</strong>（事件流），使用<strong>操作符</strong>对数据流进行<strong>组合</strong>和<strong>转换</strong>，<strong>订阅</strong>此数据流来执行其他功能。或者说监听到数据流后来执行其他功能。<br><a id="more"></a></p>
+</blockquote>
+<h3 id="扩展库"><a href="#扩展库" class="headerlink" title="扩展库"></a>扩展库</h3><p>Reactive Extension，也叫ReactiveX，或者简称Rx，指的是实践响应式编程的一套工具(库)。<br>改进了异步编程模型。<br>开发语言并没有天生对响应式编程支持，所以需要对编程语言做一层功能扩展。</p>
+<p>例如：RxJava、RxJs、RxAndroid</p>
+<p>它对观察者模式进行了扩展，以支持数据和（或）事件序列；并添加许多运算符，这些运算符可以以声明方式组合；同时抽象出对以下问题的关注：低级线程，同步，线程安全，并发数据结构和非线程等。</p>
+<h2 id="结合优秀的思想"><a href="#结合优秀的思想" class="headerlink" title="结合优秀的思想"></a>结合优秀的思想</h2><p>响应式编程结合了如下三种优秀的思想：</p>
+<ul>
+<li>观察者模式</li>
+<li>迭代器模式</li>
+<li>函数式编程</li>
+</ul>
+<p>下面重点说一下函数式编程</p>
+<h3 id="函数式编程"><a href="#函数式编程" class="headerlink" title="函数式编程"></a>函数式编程</h3><p>函数式编程就是非常强调使用<strong>函数</strong>来解决问题的一种编程方式。</p>
+<p>此处的函数有特殊的要求：</p>
+<ol>
+<li>声明式</li>
+<li>纯函数</li>
+<li>数据不可变性</li>
+</ol>
+<h4 id="命令式-vs-声明式"><a href="#命令式-vs-声明式" class="headerlink" title="命令式 vs 声明式"></a>命令式 vs 声明式</h4><figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//命令式：告诉计算机该怎么做</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">double</span>(<span class="params">arr</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">const</span> results = []</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">0</span>; i &lt; arr.length; i++)&#123;</span><br><span class="line">    results.push(arr[i] * <span class="number">2</span>)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> results</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//声明式：告诉计算机做什么</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">double</span>(<span class="params">arr</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> arr.map(<span class="function"><span class="keyword">function</span>(<span class="params">item</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> item * <span class="number">2</span></span><br><span class="line">  &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="纯函数"><a href="#纯函数" class="headerlink" title="纯函数"></a>纯函数</h4><p>函数的执行过程完全由输入参数决定，不会受除参数之外的任何数据影响。<br>函数不会修改任何外部状态，如修改全局变量或传入的参数对象。<br><figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">const</span> array = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line"><span class="keyword">const</span> newArray = double(array);</span><br><span class="line"><span class="comment">//array 的值是[1,2,3]</span></span><br><span class="line"><span class="comment">//newArray 的值是[2,4,6]</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> originalArray = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line"><span class="keyword">const</span> pushedArray = arrayPush(originalArray, <span class="number">4</span>);</span><br><span class="line"><span class="keyword">const</span> doubledPushedArray = double(pushedArray);</span><br><span class="line"><span class="comment">// pushedArray值应该是[ 1, 2, 3, 4 ]</span></span><br><span class="line"><span class="comment">// doubledPushedArray值应该是 [ 2, 4, 6, 8 ]</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> doubleOriginArray = double(originalArray);</span><br><span class="line"><span class="comment">//doubleOriginArray值应该是 [ 2, 4, 6, 8 ]; originalArray被arrayPush方法修改了。</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//再看arrayPush代码，显然不是一个纯函数</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">arrayPush</span> (<span class="params">arr, newValue</span>) </span>&#123;</span><br><span class="line">  arr.push(newValue);</span><br><span class="line">  <span class="keyword">return</span> arr;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//修改如下</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">arrayPush</span> (<span class="params">arr, newValue</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> [...arr, newValue];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="不可变性"><a href="#不可变性" class="headerlink" title="不可变性"></a>不可变性</h4><p>程序中的数据自然是需要变化的。这里的不可变性是指保持原有数据不变。<br>当我们需要数据状态发生改变时，保持原有数据不变，产生一个新的数据来体现这种变化。</p>
+<h3 id="观察者模式"><a href="#观察者模式" class="headerlink" title="观察者模式"></a>观察者模式</h3><p><img src="/posts/6740de51/20190527095658305.png" alt="观察者模式"></p>
+<h3 id="迭代器模式"><a href="#迭代器模式" class="headerlink" title="迭代器模式"></a>迭代器模式</h3><p>能够遍历一个数据集合的对象。就是提供一个通用的接口，让使用者完全不用关心这个数据集合的具体实现方式。<br><figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> iterator = getIterator();</span><br><span class="line"><span class="keyword">while</span> (iterator.isDone()) &#123;<span class="comment">//是否遍历完所有元素</span></span><br><span class="line"> <span class="built_in">console</span>.log(iterator.getCurrent());<span class="comment">//获取当前游标所指向的元素</span></span><br><span class="line"> iterator.moveToNext ();<span class="comment">//将游标移动到下一个元素</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="Observable弹珠图"><a href="#Observable弹珠图" class="headerlink" title="Observable弹珠图"></a>Observable弹珠图</h2><p><img src="/posts/6740de51/20190527095946239.png" alt="Observable弹珠图"></p>
+<h2 id="弹珠图"><a href="#弹珠图" class="headerlink" title="弹珠图"></a>弹珠图</h2><p><a href="https://rxviz.com/examples/custom" target="_blank" rel="noopener">https://rxviz.com/examples/custom</a></p>
+<h2 id="RxJS源码"><a href="#RxJS源码" class="headerlink" title="RxJS源码"></a>RxJS源码</h2><p><a href="https://github.com/ReactiveX/rxjs/blob/master/src/internal/Observable.ts" target="_blank" rel="noopener">https://github.com/ReactiveX/rxjs/blob/master/src/internal/Observable.ts</a></p>
+<h2 id="函数响应式编程的优势"><a href="#函数响应式编程的优势" class="headerlink" title="函数响应式编程的优势"></a>函数响应式编程的优势</h2><p>数据流抽象了很多现实问题。<br>擅长处理异步操作。<br>把复杂问题分解成简单问题的组合。</p>
+]]></content>
+      <categories>
+        <category>响应式</category>
+      </categories>
+      <tags>
+        <tag>响应式</tag>
+        <tag>RxJs</tag>
+        <tag>函数式编程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>我，并未走远</title>
+    <url>/posts/afcfeda8.html</url>
+    <content><![CDATA[<p>丫丫学步，歪歪扭扭走过一段床头小路时，牵着你的手，知晓你未曾走远 。熙熙攘攘，摩肩接踵挤过密密麻麻的赶集人群时，拉着你的手，知晓你依然在我身旁。依依不舍，离家上学时，背着一包满满的关心与呵护，我知道你从未走远。</p>
+<p>即使天涯海角的别离，你我仍然是咫尺之间的距离，即使是漫漫时空的分离，你我仍有情感的亲密，即使前方路涂满是荆棘，也无法割断我对你的思恋。因为，我们永远在一起，母亲。</p>
+<p>也许，为完成一个夙愿，我必须高飞；也许，为实现一个目标，我必须远航；也许，为找寻一份光明，我必须奔跑。就此向你道别，我却难以向你提起与你别离，真的很伤心，我不愿走远。<br><a id="more"></a></p>
+<p>曾经，我是你宽大羽翼下一只调皮捣蛋的幼鸟，而今，我要你在我身旁，让我为你撑起狂风暴雨中最坚强的雨伞。保护你不作为回报，而是，作为我的职责，我的义务，我的人生一部分内容。</p>
+<p>曾经，我的鲁莽无知害你伤心，让你出丑，无意中打破你望子成龙的美好愿望。而今，我虽已成功，但却失去了的陪伴。请允许我回到你身旁，弥补你的孤寂。在你的身旁，轻轻跪下，为你沏一杯清茶真诚献上；端一盆清水，暖暖的为你冲洗因我而苍老的脚；提篮春光，捧缕春风，轻轻为你祝福。</p>
+<p>虽身在远方，却归心似箭；虽距离遥远，却思恋绵绵；虽好久未见，却常常浮现你的容颜。</p>
+<p>母亲，梦里如果见过一只纸鹤在你身旁曾飞舞。请不要惊讶她无端闯入你的梦想。其实，那是我亲手折叠的祝福，它会带着我的思念，我的快乐奉献给你。要你知道，我依然在你身旁，我……从未走远，我……也不会走远。</p>
+<p>我要扶你走过曾经你教我学习走路的地方，寻找你当时的耐心与焦虑，关心与担心。我搀扶你，因为你在我心中现在是一个“婴儿”。尽管我只是悠悠寸草心，但也要尽力给予你本该拥有的爱与关怀。</p>
+<p>我要陪着你，欣赏日出日落，花开花谢，陪你看世界：天之高之蓝，海之大之阔，风之舞之美。要你安详的躺在我的怀抱，感受孩子带给你暖暖的温度与呵护。</p>
+<p>母亲，你要相信，我会永远在你身旁。我，就是你身旁的一挂藤萝，无论你身在何方，我总是紧紧牵着你的手，我的身影，就在你眉眼顾盼间，浅浅的微笑里，就在那一首首抒情小曲中。</p>
+<p>请相信，我从未走远，母亲！</p>
+]]></content>
+      <categories>
+        <category>随笔</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>根Activity组件的启动过程</title>
+    <url>/posts/b1da46a9.html</url>
+    <content><![CDATA[<p>图例只描述了Activity组件在进程外的启动过程，即从Launcher点击图标启动MainActivity的过程。</p>
+<p>MainActivity的启动过程涉及到了三个进程。MainActivity组件、LauncherActivity组件和ActivityManagerService组件分别运行在不同的进程中。</p>
+<p><img src="/posts/b1da46a9/93730-6eec539f556d1287.webp" alt="Activity启动过程"></p>
+<a id="more"></a>
+<p>在第23步中会首先创建进程，流程如下图<br><img src="/posts/b1da46a9/93730-a705c168add681b2.webp" alt></p>
+<p>其中ActivityManagerService和Process运行在system_server进程中，启动新的进程时，需要system_server与zygote进程进行socket通信，从而fork出新的进程。执行RuntimeInit.zygoteInit() -&gt; RuntimeInit.applicationInit() -&gt; RuntimeInit.invokeStaticMain()<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public static final void zygoteInit(int targetSdkVersion, String[] argv, ClassLoader classLoader)</span><br><span class="line">        throws ZygoteInit.MethodAndArgsCaller &#123;</span><br><span class="line">    if (DEBUG) Slog.d(TAG, &quot;RuntimeInit: Starting application from zygote&quot;);</span><br><span class="line"></span><br><span class="line">    Trace.traceBegin(Trace.TRACE_TAG_ACTIVITY_MANAGER, &quot;RuntimeInit&quot;);</span><br><span class="line">    redirectLogStreams();</span><br><span class="line"></span><br><span class="line">    commonInit();</span><br><span class="line">    nativeZygoteInit();</span><br><span class="line">    applicationInit(targetSdkVersion, argv, classLoader);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">**RuntimeInit.invokeStaticMain()**</span><br><span class="line">//className的值是“android.app.ActivityThread”</span><br><span class="line">private static void invokeStaticMain(String className, String[] argv, ClassLoader classLoader)</span><br><span class="line">            throws ZygoteInit.MethodAndArgsCaller &#123;</span><br><span class="line">        Class&lt;?&gt; cl;</span><br><span class="line"></span><br><span class="line">        try &#123;</span><br><span class="line">            cl = Class.forName(className, true, classLoader);</span><br><span class="line">        &#125; catch (ClassNotFoundException ex) &#123;</span><br><span class="line">            ......</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        Method m;</span><br><span class="line">        try &#123;</span><br><span class="line">            m = cl.getMethod(&quot;main&quot;, new Class[] &#123; String[].class &#125;);</span><br><span class="line">        &#125; catch (NoSuchMethodException ex) &#123;</span><br><span class="line">            ......</span><br><span class="line">        &#125; catch (SecurityException ex) &#123;</span><br><span class="line">            ......</span><br><span class="line">        &#125;</span><br><span class="line">        ......</span><br><span class="line">        /*</span><br><span class="line">         * This throw gets caught in ZygoteInit.main(), which responds</span><br><span class="line">         * by invoking the exception&apos;s run() method. This arrangement</span><br><span class="line">         * clears up all the stack frames that were required in setting</span><br><span class="line">         * up the process.</span><br><span class="line">         */</span><br><span class="line">        throw new ZygoteInit.MethodAndArgsCaller(m, argv);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p><strong>注意</strong><br>ActivityThread.main方法的执行是通过抛异常的方式执行的。抛出MethodAndrArgsCaller异常，一直按照原路向上抛。在ZygoteInit.main方法中捕获异常，并调用run方法反射执行ActivityThread.main方法<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public class ZygoteInit &#123;</span><br><span class="line">    public static void main(String argv[]) &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">			......</span><br><span class="line"></span><br><span class="line">            registerZygoteSocket(socketName);</span><br><span class="line">			......</span><br><span class="line">            preload();</span><br><span class="line">			......</span><br><span class="line">            if (startSystemServer) &#123;</span><br><span class="line">                startSystemServer(abiList, socketName);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            runSelectLoop(abiList);</span><br><span class="line"></span><br><span class="line">            closeServerSocket();</span><br><span class="line">        &#125; catch (MethodAndArgsCaller caller) &#123;</span><br><span class="line">			// 处理异常</span><br><span class="line">            caller.run();</span><br><span class="line">        &#125; catch (RuntimeException ex) &#123;</span><br><span class="line">            Log.e(TAG, &quot;Zygote died with exception&quot;, ex);</span><br><span class="line">            closeServerSocket();</span><br><span class="line">            throw ex;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+]]></content>
+      <categories>
+        <category>Android</category>
+      </categories>
+      <tags>
+        <tag>Activity启动过程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>生产者-消费者模式详解</title>
+    <url>/posts/525a96b8.html</url>
+    <content><![CDATA[<h2 id="生产者消费者模式说明："><a href="#生产者消费者模式说明：" class="headerlink" title="生产者消费者模式说明："></a>生产者消费者模式说明：</h2><ol>
+<li>生产者只在仓库未满时进行生产，仓库满时生产者进程被阻塞；</li>
+<li>消费者只在仓库非空时进行消费，仓库为空时消费者进程被阻塞；</li>
+<li>当消费者发现仓库为空时会通知生产者生产；</li>
+<li>当生产者发现仓库满时会通知消费者消费；</li>
+</ol>
+<h2 id="实现的关键："><a href="#实现的关键：" class="headerlink" title="实现的关键："></a>实现的关键：</h2><p>共享内存中的两个同步方法，及同步方法中wait()方法的调用。</p>
+<ul>
+<li>synchronized 保证了对象只能被一个线程占用。</li>
+<li>wait 保证了当线程在等待过程中释放锁，使得其他对象有机会获得锁。<a id="more"></a>
+<blockquote>
+<p><a href="http://www.2cto.com/kf/ware/Java/" target="_blank" rel="noopener">Java</a>中有一个同步模型-监视器，负责管理线程对对象中的同步方法的访问，它的原理是：赋予该对象唯一一把’钥匙’，当多个线程进入对象，只有取得该对象钥匙的线程才可以访问同步方法，其它线程在该对象中等待，直到该线程用wait()方法放弃这把钥匙，其它等待的线程抢占该钥匙，抢占到钥匙的线程后才可得以执行，而没有取得钥匙的线程仍被阻塞在该对象中等待。 总而言之，synchonized使得只有一个线程能进入临界代码区。</p>
+</blockquote>
+</li>
+</ul>
+<blockquote>
+<p>由于wait( )所等待的对象必须先锁住，因此，它只能用在同步化程序段或者同步化方法内，否则，会抛出异常java.lang.IllegalMonitorStateException.</p>
+</blockquote>
+<h2 id="代码"><a href="#代码" class="headerlink" title="代码"></a>代码</h2><ul>
+<li><p>仓库（缓冲区），用于管理产品的生产、消费和存储</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line"> * 仓库类，用于管理产品的生产、消费和存储。</span><br><span class="line"> */</span><br><span class="line">public class Storage&lt;T&gt; &#123;</span><br><span class="line">	private int index = 0;</span><br><span class="line">	private static final int MAX = 10;//最大容量</span><br><span class="line">	private List&lt;T&gt; storages = new ArrayList&lt;T&gt;(MAX);//存储集合</span><br><span class="line"></span><br><span class="line">	public synchronized void produce(T item) &#123;</span><br><span class="line">		while (index &gt;= MAX) &#123;// 判断仓库满了，则等待。</span><br><span class="line">			try &#123;</span><br><span class="line">				System.out.println(&quot;仓库满了，等待中...&quot;);</span><br><span class="line">				this.wait();</span><br><span class="line">				System.out.println(&quot;仓库不满了，开始生产&quot;);</span><br><span class="line">			&#125; catch (InterruptedException e) &#123;</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		System.out.println(&quot;生产&gt;&gt;&quot; + item.toString());</span><br><span class="line">		storages.add(item);</span><br><span class="line">		index++;   //先添加item，在进行加1操作</span><br><span class="line">		notify();  //唤醒在此对象监视器上等待的单个线程，即消费者线程</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	public synchronized T consume() &#123;</span><br><span class="line">		while (index &lt;= 0) &#123;// 判断仓库满了，则等待。</span><br><span class="line">			try &#123;</span><br><span class="line">				System.out.println(&quot;仓库为空，等待中...&quot;);</span><br><span class="line">				this.wait();</span><br><span class="line">				System.out.println(&quot;仓库不为空，开始消费&quot;);</span><br><span class="line">			&#125; catch (InterruptedException e) &#123;</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		index--;//先进行减1操作，再remove</span><br><span class="line">		T item = storages.remove(index);</span><br><span class="line">		System.out.println(&quot;消费&gt;&gt;&quot; + item.toString());</span><br><span class="line">		notify();</span><br><span class="line">		return item;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>产品</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public class Phone &#123;</span><br><span class="line"></span><br><span class="line">	private int id;// 手机编号</span><br><span class="line"></span><br><span class="line">	public Phone(int id) &#123;</span><br><span class="line">		this.id = id;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	@Override</span><br><span class="line">	public String toString() &#123;</span><br><span class="line">		return &quot;手机编号：&quot; + id;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>生产者</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public class Producer implements Runnable &#123;</span><br><span class="line"></span><br><span class="line">	private Storage&lt;Phone&gt; storage;</span><br><span class="line">	</span><br><span class="line">	public Producer(Storage&lt;Phone&gt; storage) &#123;</span><br><span class="line">		this.storage = storage;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	public void run() &#123;</span><br><span class="line">		for(int i = 0;i&lt;20;i++)&#123;</span><br><span class="line">			storage.produce(new Phone(i));</span><br><span class="line">			</span><br><span class="line">			try &#123;</span><br><span class="line">				Thread.sleep(10);//每隔10毫秒生产一个产品</span><br><span class="line">			&#125; catch (InterruptedException e) &#123;</span><br><span class="line">				// TODO Auto-generated catch block</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>消费者</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public class Consumer implements Runnable &#123;</span><br><span class="line"></span><br><span class="line">	private Storage&lt;Phone&gt; storage;</span><br><span class="line">	</span><br><span class="line">	public Consumer(Storage&lt;Phone&gt; storage) &#123;</span><br><span class="line">		this.storage = storage;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	public void run() &#123;</span><br><span class="line">		for(int i = 0;i&lt;20;i++)&#123;</span><br><span class="line">			storage.consume();</span><br><span class="line">			try &#123;</span><br><span class="line">				Thread.sleep(100);//每隔100毫秒消费一个</span><br><span class="line">			&#125; catch (InterruptedException e) &#123;</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>客户端</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public class ProducerAndConsumer &#123;</span><br><span class="line"></span><br><span class="line">	public static void main(String[] args) &#123;</span><br><span class="line">		Storage&lt;Phone&gt; storage = new Storage&lt;Phone&gt;();</span><br><span class="line">		</span><br><span class="line">		new Thread(new Producer(storage)).start();</span><br><span class="line">		new Thread(new Consumer(storage)).start();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>结果<br>生产&gt;&gt;手机编号：0<br>消费&gt;&gt;手机编号：0<br>生产&gt;&gt;手机编号：1<br>生产&gt;&gt;手机编号：2<br>生产&gt;&gt;手机编号：3<br>生产&gt;&gt;手机编号：4<br>生产&gt;&gt;手机编号：5<br>生产&gt;&gt;手机编号：6<br>生产&gt;&gt;手机编号：7<br>生产&gt;&gt;手机编号：8<br>生产&gt;&gt;手机编号：9<br>消费&gt;&gt;手机编号：9<br>生产&gt;&gt;手机编号：10<br>生产&gt;&gt;手机编号：11<br>仓库满了，等待中…<br>消费&gt;&gt;手机编号：11<br>仓库不满了，开始生产<br>生产&gt;&gt;手机编号：12<br>仓库满了，等待中…<br>消费&gt;&gt;手机编号：12<br>仓库不满了，开始生产<br>生产&gt;&gt;手机编号：13<br>仓库满了，等待中…<br>消费&gt;&gt;手机编号：13<br>仓库不满了，开始生产<br>生产&gt;&gt;手机编号：14<br>仓库满了，等待中…<br>消费&gt;&gt;手机编号：14<br>仓库不满了，开始生产<br>生产&gt;&gt;手机编号：15<br>仓库满了，等待中…<br>消费&gt;&gt;手机编号：15<br>仓库不满了，开始生产<br>生产&gt;&gt;手机编号：16<br>仓库满了，等待中…<br>消费&gt;&gt;手机编号：16<br>仓库不满了，开始生产<br>生产&gt;&gt;手机编号：17<br>仓库满了，等待中…<br>消费&gt;&gt;手机编号：17<br>仓库不满了，开始生产<br>生产&gt;&gt;手机编号：18<br>仓库满了，等待中…<br>消费&gt;&gt;手机编号：18<br>仓库不满了，开始生产<br>生产&gt;&gt;手机编号：19<br>消费&gt;&gt;手机编号：19<br>消费&gt;&gt;手机编号：10<br>消费&gt;&gt;手机编号：8<br>消费&gt;&gt;手机编号：7<br>消费&gt;&gt;手机编号：6<br>消费&gt;&gt;手机编号：5<br>消费&gt;&gt;手机编号：4<br>消费&gt;&gt;手机编号：3<br>消费&gt;&gt;手机编号：2<br>消费&gt;&gt;手机编号：1</p>
+</li>
+</ul>
+<h2 id="参阅"><a href="#参阅" class="headerlink" title="参阅"></a>参阅</h2><p><a href="http://www.2cto.com/kf/201310/248226.html" target="_blank" rel="noopener">生产者消费者模式详解及代码实现</a><br><a href="http://blog.csdn.net/monkey_d_meng/article/details/6251879" target="_blank" rel="noopener">生产者/消费者问题的多种Java实现方式</a><br><a href="http://blog.csdn.net/thinkpadshi/article/details/8163751" target="_blank" rel="noopener">Java多线程之生产者消费者经典问题</a></p>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>生产者-消费者</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>车</title>
+    <url>/posts/366e8e22.html</url>
+    <content><![CDATA[<p>记忆在色彩缤纷的流光中穿梭，掠过河流，越过山川，寻觅着家乡的空气、高山与小河，驻足在一栋老房子的屋檐下。</p>
+<p>“咯吱……”</p>
+<p>一个小孩从门里探出了头，左右扭了扭，查看一番又回去了。不时，推着一辆同他一样高的自行车磕磕绊绊走出了只开了一扇的大门。</p>
+<p>车身亮黑色，28的车轮，结实的车架，显得格外有范儿。<br><a id="more"></a><br>小孩熟练的握着把手，右脚踩在踏板上。烈日当空，人和车的影子交织在一起，“噔～蹬～”，扬长而去。</p>
+<p>还是村中心的戏台下，一群小孩聚集在一起，每个人都站在自己的车旁，欢声笑语。<br>整个下午，自行车车轮压过了村里每一条大路，小路。一趟、两趟……似乎孩子的世界永远不知疲倦。有时候摔倒，又依然镇定自若的爬起来，拍拍尘土，继续追上队伍的行程。</p>
+<p>夜晚归来，免不了挨一顿揍。</p>
+]]></content>
+      <categories>
+        <category>随笔</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>《Android开发艺术探索》——View事件分发机制</title>
+    <url>/posts/b516dca1.html</url>
+    <content><![CDATA[<h1 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h1><p><strong>同一个事件序列</strong>指的是从手指触摸屏幕的那一刻开始，到手指离开屏幕的那一刻结束，在这个过程产生的一系列事件。以down事件开始，可能经过n多个move事件，最终以up事件结束。</p>
+<h1 id="案例"><a href="#案例" class="headerlink" title="案例"></a>案例</h1><p>自定义三个布局<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&lt;com.yolo.myapplication.view.FirstFrameLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;</span><br><span class="line">    xmlns:tools=&quot;http://schemas.android.com/tools&quot;</span><br><span class="line">    android:id=&quot;@+id/activity_view_demo&quot;</span><br><span class="line">    android:layout_width=&quot;match_parent&quot;</span><br><span class="line">    android:layout_height=&quot;match_parent&quot;</span><br><span class="line">    android:background=&quot;@android:color/holo_blue_bright&quot;</span><br><span class="line">    tools:context=&quot;com.yolo.myapplication.view.ViewDemoActivity&quot;&gt;</span><br><span class="line"></span><br><span class="line">    &lt;com.yolo.myapplication.view.SecondRelativeLayout</span><br><span class="line">        android:layout_width=&quot;300dp&quot;</span><br><span class="line">        android:layout_height=&quot;300dp&quot;</span><br><span class="line">        android:layout_gravity=&quot;center&quot;</span><br><span class="line">        android:background=&quot;@android:color/holo_green_dark&quot;&gt;</span><br><span class="line"></span><br><span class="line">        &lt;com.yolo.myapplication.view.ThirdTextView</span><br><span class="line">            android:layout_width=&quot;100dp&quot;</span><br><span class="line">            android:layout_height=&quot;100dp&quot;</span><br><span class="line">            android:clickable=&quot;true&quot;</span><br><span class="line">            android:background=&quot;@android:color/holo_red_light&quot;</span><br><span class="line">            android:layout_centerInParent=&quot;true&quot; /&gt;</span><br><span class="line"></span><br><span class="line">    &lt;/com.yolo.myapplication.view.SecondRelativeLayout&gt;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&lt;/com.yolo.myapplication.view.FirstFrameLayout&gt;</span><br></pre></td></tr></table></figure></p>
+<a id="more"></a>
+<p><img src="/posts/b516dca1/93730-56415ba0c6f300e0.webp" alt="布局.png"></p>
+<h1 id="情况一"><a href="#情况一" class="headerlink" title="情况一"></a>情况一</h1><p>默认情况，未设置返回true或false，事件都是return super.onXXX(event);<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">I/Activity: dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/FirstFrameLayout: dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/FirstFrameLayout: onInterceptTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/SecondRelativeLayout: dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/SecondRelativeLayout: onInterceptTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/ThirdTextView: dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/ThirdTextView: onTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/SecondRelativeLayout: onTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/FirstFrameLayout: onTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/Activity: dispatchTouchEvent&gt;&gt;UP</span><br></pre></td></tr></table></figure></p>
+<p>可见，事件默认回传到Activity。</p>
+<h1 id="情况二"><a href="#情况二" class="headerlink" title="情况二"></a>情况二</h1><p>ThirdTextView的onTouchEvent返回true。或者设置ThirdTextView的属性clickable=true<br>日志：<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">I/FirstFrameLayout:     dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/FirstFrameLayout:     onInterceptTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/SecondRelativeLayout: dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/SecondRelativeLayout: onInterceptTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/ThirdTextView:        dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/ThirdTextView:        onTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/FirstFrameLayout:     dispatchTouchEvent&gt;&gt;UP</span><br><span class="line">I/FirstFrameLayout:     onInterceptTouchEvent&gt;&gt;&gt;&gt;UP</span><br><span class="line">I/SecondRelativeLayout: dispatchTouchEvent&gt;&gt;UP</span><br><span class="line">I/SecondRelativeLayout: onInterceptTouchEvent&gt;&gt;&gt;&gt;UP</span><br><span class="line">I/ThirdTextView:        dispatchTouchEvent&gt;&gt;UP</span><br><span class="line">I/ThirdTextView:        onTouchEvent&gt;&gt;&gt;&gt;UP</span><br></pre></td></tr></table></figure></p>
+<p>图例：<br><img src="/posts/b516dca1/93730-e9f90388dd8511be.webp" alt="默认情况下事件传递机制"></p>
+<ul>
+<li><p>结论：</p>
+<blockquote>
+<p>View的OnTouchEvent的事件默认都会消耗事件（返回true），除非它是不可点击的（clickable和longClickable同时为false）。如果View是不可点击的（clickable和longClickable同时为false），则返回false。</p>
+</blockquote>
+</li>
+<li><p>注意：<br>View的longClickable默认都为false，clickable属性分情况：如Button的clickable属性默认为true，TextView的clickable属性默认为false。<br>View的enable属性不影响onTouchEvent默认返回值。clickable和longClickable属性会影响。</p>
+</li>
+</ul>
+<p>#情况三<br>FristFrameLayout的onTouchEvent返回true，SecondRelativeLayout和ThirdTextView的OnTouchEvent返回false。<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">I/FirstFrameLayout:     dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/FirstFrameLayout:     onInterceptTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/SecondRelativeLayout: dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/SecondRelativeLayout: onInterceptTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/ThirdTextView:        dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/ThirdTextView:        onTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/SecondRelativeLayout: onTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/FirstFrameLayout:     onTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/FirstFrameLayout:     dispatchTouchEvent&gt;&gt;UP</span><br><span class="line">I/FirstFrameLayout:     onTouchEvent&gt;&gt;&gt;&gt;UP</span><br></pre></td></tr></table></figure></p>
+<p>图例：<br><img src="/posts/b516dca1/93730-3ee243cc1290c160.webp" alt="View事件传递"></p>
+<ul>
+<li>结论：<blockquote>
+<p>如果View一旦开始处理事件，如果它不消费ACTION_DOWN事件，那么同一个事件序列的其他事件也不会再交给它，并且重新交给它的父元素去处理。例如红线的down事件流向。</p>
+</blockquote>
+</li>
+</ul>
+<h1 id="情况四"><a href="#情况四" class="headerlink" title="情况四"></a>情况四</h1><p>SecondRelativeLayout 拦截事件，onInterceptTouchEvent返回true，且onTouchEvent返回true<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">I/FirstFrameLayout:     dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/FirstFrameLayout:     onInterceptTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/SecondRelativeLayout: dispatchTouchEvent&gt;&gt;DOWN</span><br><span class="line">I/SecondRelativeLayout: onInterceptTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/SecondRelativeLayout: onTouchEvent&gt;&gt;&gt;&gt;DOWN</span><br><span class="line">I/FirstFrameLayout:     dispatchTouchEvent&gt;&gt;UP</span><br><span class="line">I/FirstFrameLayout:     onInterceptTouchEvent&gt;&gt;&gt;&gt;UP</span><br><span class="line">I/SecondRelativeLayout: dispatchTouchEvent&gt;&gt;UP</span><br><span class="line">I/SecondRelativeLayout: onTouchEvent&gt;&gt;&gt;&gt;UP</span><br></pre></td></tr></table></figure></p>
+<p><img src="/posts/b516dca1/93730-b60b8e7b97033c31.webp" alt="View事件传递机制"></p>
+<ul>
+<li>结论:</li>
+</ul>
+<blockquote>
+<p>正常情况下，一个事件序列只能被一个View拦截且消耗。因为一旦一个元素拦截了此事件，那么同一事件序列内的所有事件都会<strong>直接</strong>交给它处理。</p><p><br>View一旦决定拦截，那么事件序列只能由它来处理，并且它的onInterceptTouchEvent不会被调用。比如SecondRelativeLayout拦截了Down事件，那么事件序列中的Up直接交给它处理，并且不会再去执行onInterceptTouchEvent。</p>
+</blockquote>
+<ul>
+<li>注意：<br>事件传递由外向内，即事件总是先传递到父元素，然后再由父元素分发给子View，通过<code>requestDisallowInterceptTouchEvent</code>方法可以在子元素中干预父元素的事件分发过程。但是ACTION_DOWN事件除外。</li>
+</ul>
+<h1 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h1><ul>
+<li>当一个View需要处理事件时，如果它设置了OnTouchListener，那么这个接口的onTouch方法会被回调。如果onTouch方法返回true，则onTouchEvent不会被调用。因此OnTouchListener优先级高于onTouchEvent。<blockquote>
+<p>OnTouchListener  &gt;  onTouchEvent  &gt; OnClickListener</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><p>View拦截了事件，那么事件序列中的其余事件则直接跳过onInterceptTouchEvent方法去执行onTouchEvent方法。是因为mFirstTouchTarget ！= null 的标记。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">// Handle an initial down.</span><br><span class="line">if (actionMasked == MotionEvent.ACTION_DOWN) &#123;</span><br><span class="line">	// Throw away all previous state when starting a new touch gesture.</span><br><span class="line">	// The framework may have dropped the up or cancel event for the previous gesture</span><br><span class="line">	// due to an app switch, ANR, or some other state change.</span><br><span class="line">	cancelAndClearTouchTargets(ev);</span><br><span class="line">	resetTouchState();</span><br><span class="line">&#125;</span><br><span class="line">final boolean intercepted;</span><br><span class="line">//如果子View处理了事件，mFirstTouchTarget != null 成立，为true。</span><br><span class="line">//且此时传递的是事件序列的其余事件，不是Down事件，因此整个条件不成立。</span><br><span class="line">//不会执行onInterceptTouchEvent</span><br><span class="line">if (actionMasked == MotionEvent.ACTION_DOWN</span><br><span class="line">		|| mFirstTouchTarget != null) &#123;</span><br><span class="line">	final boolean disallowIntercept = (mGroupFlags &amp; FLAG_DISALLOW_INTERCEPT) != 0;</span><br><span class="line">	if (!disallowIntercept) &#123;</span><br><span class="line">		intercepted = onInterceptTouchEvent(ev);</span><br><span class="line">		ev.setAction(action); // restore action in case it was changed</span><br><span class="line">	&#125; else &#123;</span><br><span class="line">		intercepted = false;</span><br><span class="line">	&#125;</span><br><span class="line">&#125; else &#123;</span><br><span class="line">	// There are no touch targets and this action is not an initial down</span><br><span class="line">	// so this view group continues to intercept touches.</span><br><span class="line">	intercepted = true;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>FLAG_DISALLOW_INTERCEPT标记位。<br>这个标记位可以通过requestDisallowInterceptTouchEvent方法来设置。一般用于子View中，设置后，ViewGroup将无法拦截除了ACTION_DOWN以外的事件。</p>
+<p>ViewGroup在分发事件的时候，会重置此标记位。将导致子View设置这个标记位无效。</p>
+</li>
+</ul>
+<h1 id="滑动冲突解决"><a href="#滑动冲突解决" class="headerlink" title="滑动冲突解决"></a>滑动冲突解决</h1><p>一般采用相对简单的外部拦截法进行处理。<br>伪代码：<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">@Override</span><br><span class="line">public boolean onInterceptTouchEvent(MotionEvent event) &#123;</span><br><span class="line">	boolean intercepted = false;</span><br><span class="line">	int x = (int) event.getX();</span><br><span class="line">	int y = (int) event.getY();</span><br><span class="line"></span><br><span class="line">	switch (event.getAction()) &#123;</span><br><span class="line">	case MotionEvent.ACTION_DOWN: &#123;</span><br><span class="line">		intercepted = false;</span><br><span class="line">        //TODO</span><br><span class="line">		break;</span><br><span class="line">	&#125;</span><br><span class="line">	case MotionEvent.ACTION_MOVE: &#123;</span><br><span class="line">		int deltaX = x - mLastXIntercept;</span><br><span class="line">		int deltaY = y - mLastYIntercept;</span><br><span class="line">        //拦截条件：如果X轴偏移量大于Y轴，则表示水平滑动，进行拦截处理。</span><br><span class="line">		if (Math.abs(deltaX) &gt; Math.abs(deltaY)) &#123;</span><br><span class="line">			intercepted = true;</span><br><span class="line">		&#125; else &#123;</span><br><span class="line">			intercepted = false;</span><br><span class="line">		&#125;</span><br><span class="line">		break;</span><br><span class="line">	&#125;</span><br><span class="line">	case MotionEvent.ACTION_UP: &#123;</span><br><span class="line">		intercepted = false;</span><br><span class="line">		break;</span><br><span class="line">	&#125;</span><br><span class="line">	default:</span><br><span class="line">		break;</span><br><span class="line">	&#125;</span><br><span class="line">	mLastXIntercept = x;</span><br><span class="line">	mLastYIntercept = y;</span><br><span class="line"></span><br><span class="line">	return intercepted;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+]]></content>
+      <categories>
+        <category>Android</category>
+      </categories>
+      <tags>
+        <tag>View事件</tag>
+        <tag>分发机制</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>线程和线程池</title>
+    <url>/posts/659ca0ab.html</url>
+    <content><![CDATA[<h1 id="线程"><a href="#线程" class="headerlink" title="线程"></a>线程</h1><p>在java中实现线程的方式：</p>
+<ol>
+<li>继承Thread类</li>
+<li>实现Runable接口。</li>
+</ol>
+<p>main方法其实也是一个线程。<br>在java中，每次程序运行至少启动2个线程。一个是main线程，一个是垃圾收集线程。</p>
+<ul>
+<li><strong>对比</strong><br>实现Runnable接口比继承Thread类所具有的优势：<br>1）：适合多个相同的程序代码的线程去处理同一个资源<br>2）：可以避免java中的单继承的限制<br>3）：增加程序的健壮性，代码可以被多个线程共享，代码和数据独立<a id="more"></a>
+</li>
+</ul>
+<ul>
+<li><p><strong>yield()方法</strong></p>
+<p>Thread.yield()方法作用是：暂停当前正在执行的线程对象，并执行其他线程。<br>yield()应该做的是让当前运行线程回到<strong>可运行状态</strong>，以允许具有相同优先级的其他线程获得运行机会。因此，使用yield()的目的是让相同优先级的线程之间能适当的轮转执行。但是，实际中无法保证yield()达到让步目的，因为让步的线程还有可能被线程调度程序再次选中。</p>
+<blockquote>
+<p>结论：yield()从未导致线程转到等待/睡眠/阻塞状态。在大多数情况下，yield()将导致线程从运行状态转到可运行状态，但有可能没有效果。</p>
+</blockquote>
+</li>
+<li><p><strong>join()方法</strong><br>保证当前线程停止执行，直到该线程所加入的线程完成为止，当前线程方可继续执行。然而，如果它加入的线程没有存活，则当前线程不需要停止。</p>
+</li>
+</ul>
+<h1 id="AsyncTask"><a href="#AsyncTask" class="headerlink" title="AsyncTask"></a>AsyncTask</h1><ul>
+<li>内部由两个线程池和一个Handler组成。<ol>
+<li>SerialExecutor：用于任务的排队，一次执行一个。</li>
+<li>ThreadPoolExecutor：用于真正的执行任务。</li>
+<li>InternalHandler：用于发送结果数据从子线程到主线程。</li>
+</ol>
+</li>
+</ul>
+<ul>
+<li><p>执行流程：<br>构造方法中实例化WorkerRunnable和FutureTask对象。<br>WorkerRunnable将Params参数封装，并将自己封装在FutureTask中，一旦FutureTask执行run方法时，会去调用WorkRunnable的call方法并返回Result值。call方法中就执行了AsyncTask的doInBackground方法。并调用postResult方法将结果发送出去。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">mWorker = new WorkerRunnable&lt;Params, Result&gt;() &#123;</span><br><span class="line">	public Result call() throws Exception &#123;</span><br><span class="line">		mTaskInvoked.set(true);</span><br><span class="line"></span><br><span class="line">		Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);</span><br><span class="line">		//noinspection unchecked</span><br><span class="line">		Result result = doInBackground(mParams);</span><br><span class="line">		Binder.flushPendingCommands();</span><br><span class="line">		return postResult(result);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">  private Result postResult(Result result) &#123;</span><br><span class="line">        @SuppressWarnings(&quot;unchecked&quot;)</span><br><span class="line">        Message message = getHandler().obtainMessage(MESSAGE_POST_RESULT,</span><br><span class="line">                new AsyncTaskResult&lt;Result&gt;(this, result));</span><br><span class="line">        message.sendToTarget();</span><br><span class="line">        return result;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>那么FutureTask是什么时候执行的？<br>FutureTask充当了Runnable的作用，交给SerialExecutor的execute方法执行。FutureTask是一个并发类，可以中途取消的用于异步计算的类。</p>
+<p>SerialExecutor的execute方法首先把FutureTask插入到mTasks任务队列中，如果没有活动的任务，则执行下一个。当一个任务执行完成，会继续调用scheduleNext方法执行下一个，直到所有任务都被执行。</p>
+<p>THREAD_POOL_EXECUTOR.execute(mActive);才是真正执行任务的方法。使用的是ThreadPoolExecutor线程池。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">private static class SerialExecutor implements Executor &#123;</span><br><span class="line">	final ArrayDeque&lt;Runnable&gt; mTasks = new ArrayDeque&lt;Runnable&gt;();</span><br><span class="line">	Runnable mActive;</span><br><span class="line"></span><br><span class="line">	public synchronized void execute(final Runnable r) &#123;</span><br><span class="line">		//将FutureTask插入到mTasks任务队列中</span><br><span class="line">		mTasks.offer(new Runnable() &#123;</span><br><span class="line">			public void run() &#123;</span><br><span class="line">				try &#123;</span><br><span class="line">					// 执行FutureTask的run方法，进而执行call方法</span><br><span class="line">					r.run();</span><br><span class="line">				&#125; finally &#123;</span><br><span class="line">					// 串行执行下一个任务</span><br><span class="line">					scheduleNext();</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;);</span><br><span class="line">		//没有正在活动的任务，执行下一个AsyncTask。</span><br><span class="line">		if (mActive == null) &#123;</span><br><span class="line">			scheduleNext();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	protected synchronized void scheduleNext() &#123;</span><br><span class="line">		if ((mActive = mTasks.poll()) != null) &#123;</span><br><span class="line">			THREAD_POOL_EXECUTOR.execute(mActive);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>注意：</p>
+<ol>
+<li>AsyncTask对象必须在主线程中创建</li>
+<li>execute必须在主线程中调用</li>
+<li>一个AsyncTask只能调用一次execute方法，</li>
+</ol>
+</li>
+</ul>
+<h1 id="HandlerThread"><a href="#HandlerThread" class="headerlink" title="HandlerThread"></a>HandlerThread</h1><p>继承了Thread类，本质还是线程。但是可以直接使用Handler的Thread。在run方法中通过Looper.prepare创建消息队列，并开启消息循环。使得可以再此线程中创建Handler。</p>
+<p>由于loop开启了无限循环，因此可以通过quit或者quitSafely方法终止线程执行。</p>
+<p>同时，它还解决了一个Looper与Handler的同步问题。可以保证根据当前线程的Looper创建Handler时，Looper对象的获取不为空。<br>参考<strong>《深入理解Android 卷I》159页</strong><br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line"> * This method returns the Looper associated with this thread. If this thread not been started</span><br><span class="line"> * or for any reason is isAlive() returns false, this method will return null. If this thread </span><br><span class="line"> * has been started, this method will block until the looper has been initialized.  </span><br><span class="line"> * @return The looper.</span><br><span class="line"> */</span><br><span class="line">public Looper getLooper() &#123;</span><br><span class="line">    if (!isAlive()) &#123;</span><br><span class="line">        return null;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    // If the thread has been started, wait until the looper has been created.</span><br><span class="line">    synchronized (this) &#123;</span><br><span class="line">        while (isAlive() &amp;&amp; mLooper == null) &#123;</span><br><span class="line">            try &#123;</span><br><span class="line">                wait();</span><br><span class="line">            &#125; catch (InterruptedException e) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    return mLooper;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>典型应用场景就是在IntentService中。<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">@Override</span><br><span class="line">public void run() &#123;</span><br><span class="line">    mTid = Process.myTid();</span><br><span class="line">    Looper.prepare();</span><br><span class="line">    synchronized (this) &#123;</span><br><span class="line">        mLooper = Looper.myLooper();</span><br><span class="line">        notifyAll();</span><br><span class="line">    &#125;</span><br><span class="line">    Process.setThreadPriority(mPriority);</span><br><span class="line">    onLooperPrepared();</span><br><span class="line">    Looper.loop();</span><br><span class="line">    mTid = -1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="IntentService"><a href="#IntentService" class="headerlink" title="IntentService"></a>IntentService</h1><p>一个可以处理异步请求的Service.服务开启后，工作线程会依次处理每个Intent，任务执行完毕后会自动关闭。</p>
+<p>相对于线程而言，IntentService更适合执行一些高优先级的后台任务。<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">@Override</span><br><span class="line">public void onCreate() &#123;</span><br><span class="line">    // TODO: It would be nice to have an option to hold a partial wakelock</span><br><span class="line">    // during processing, and to have a static startService(Context, Intent)</span><br><span class="line">    // method that would launch the service &amp; hand off a wakelock.</span><br><span class="line"></span><br><span class="line">    super.onCreate();</span><br><span class="line">    HandlerThread thread = new HandlerThread(&quot;IntentService[&quot; + mName + &quot;]&quot;);</span><br><span class="line">    thread.start();</span><br><span class="line"></span><br><span class="line">    mServiceLooper = thread.getLooper();</span><br><span class="line">    mServiceHandler = new ServiceHandler(mServiceLooper);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="线程池"><a href="#线程池" class="headerlink" title="线程池"></a>线程池</h1><ul>
+<li>优点<ol>
+<li>重用线程池中的线程，避免因为线程的创建和销毁带来的性能开销。</li>
+<li>有效控制线程的最大并发数，避免因大量的线程之间互相抢占系统资源而导致的阻塞 。</li>
+<li>能够对线程进行简单的管理，并提供定时执行和执行循环间隔执行等功能</li>
+</ol>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public ThreadPoolExecutor(int corePoolSize,</span><br><span class="line">                          int maximumPoolSize,</span><br><span class="line">                          long keepAliveTime,</span><br><span class="line">                          TimeUnit unit,</span><br><span class="line">                          BlockingQueue&lt;Runnable&gt; workQueue,</span><br><span class="line">                          ThreadFactory threadFactory,</span><br><span class="line">                          RejectedExecutionHandler handler) &#123;  &#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>变量</p>
+<ul>
+<li>corePoolSize: 核心线程数</li>
+<li>maximumPoolSize: 最大线程数</li>
+<li>workQueue:任务队列，提交的Runnable对象存储在这里。</li>
+<li>keepAliveTime: 非核心线程存活时间</li>
+<li>unit:keepAliveTime的时间单位。</li>
+<li>threadFactory:为线程池提供新线程的工厂。</li>
+<li>handler：异常处理策略。</li>
+</ul>
+</li>
+<li><p>规则</p>
+<ol>
+<li>如果此时线程池中的数量小于corePoolSize，即使线程池中的线程都处于空闲状态，也要创建新的线程来处理被添加的任务。 </li>
+<li>如果此时线程池中的数量等于 corePoolSize，但是缓冲队列 workQueue未满，那么任务被放入缓冲队列。 </li>
+<li>如果此时线程池中的数量大于corePoolSize，缓冲队列workQueue满，并且线程池中的数量小于maximumPoolSize，建新的线程来处理被添加的任务。</li>
+<li>如果此时线程池中的数量大于corePoolSize，缓冲队列workQueue满，并且线程池中的数量等于maximumPoolSize，那么通过 handler所指定的策略来处理此任务。 </li>
+</ol>
+</li>
+</ul>
+<p>参阅：<br><a href="http://blog.csdn.net/evankaka/article/details/44153709" target="_blank" rel="noopener"> Java多线程学习</a></p>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>线程</tag>
+        <tag>线程池</tag>
+      </tags>
+  </entry>
+</search>
